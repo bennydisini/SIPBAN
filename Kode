@@ -1,0 +1,323 @@
+const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+const FOLDER_NAME_FOTO = "SIPBAN_Foto_Kerusakan";
+const SHEET_NAMES = {
+  USERS: 'users',
+  DATA_RUMAH: 'data_rumah',
+  DATA_BANTUAN: 'data_bantuan',
+  LOG_PERBAIKAN: 'log_perbaikan',
+  SETTINGS: 'settings'
+};
+
+// ==========================================
+// SETUP DATABASE
+// ==========================================
+function setupDatabase() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  createSheetIfNotExists(ss, SHEET_NAMES.USERS, ['id', 'username', 'password', 'role', 'created_at']);
+  const usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (usersSheet.getLastRow() <= 1) {
+    usersSheet.appendRow([Date.now().toString(), 'admin', 'admin123', 'admin', new Date().toISOString()]);
+    usersSheet.appendRow([Date.now().toString()+1, 'petugas', 'petugas123', 'petugas', new Date().toISOString()]);
+    usersSheet.appendRow([Date.now().toString()+2, 'surveyor', 'surveyor123', 'surveyor', new Date().toISOString()]);
+    usersSheet.appendRow([Date.now().toString()+3, 'kecamatan', 'kecamatan123', 'petugas_kecamatan', new Date().toISOString()]);
+  }
+
+  // Setup Tabel Settings
+  createSheetIfNotExists(ss, SHEET_NAMES.SETTINGS, ['key', 'value']);
+  const settingsSheet = ss.getSheetByName(SHEET_NAMES.SETTINGS);
+  if (settingsSheet.getLastRow() <= 1) {
+    settingsSheet.appendRow(['active_phase', 'BNBA 1']);
+    settingsSheet.appendRow(['phase_status', 'open']);
+  }
+  
+  // Penempatan fase_bnba diletakkan di indeks ke-20 (ujung) agar tidak mengganggu data lama
+  createSheetIfNotExists(ss, SHEET_NAMES.DATA_RUMAH, [
+    'id', 'petugas_username', 'surveyor_username', 'nama_pemilik', 'nik', 'no_kk', 
+    'dusun', 'desa', 'kecamatan', 'koordinat', 'tingkat_kerusakan', 'kebutuhan_mendesak', 
+    'foto_1', 'foto_2', 'foto_3', 'foto_4', 'foto_5', 'foto_6', 'status', 'created_at', 'fase_bnba'
+  ]);
+  
+  createSheetIfNotExists(ss, SHEET_NAMES.DATA_BANTUAN, ['id_laporan', 'jenis_bantuan', 'keterangan', 'updated_at']);
+  createSheetIfNotExists(ss, SHEET_NAMES.LOG_PERBAIKAN, ['id_laporan', 'field', 'old_value', 'new_value', 'admin_user', 'timestamp']);
+  
+  let folders = DriveApp.getFoldersByName(FOLDER_NAME_FOTO);
+  if (!folders.hasNext()) { DriveApp.createFolder(FOLDER_NAME_FOTO); }
+
+  Logger.log('✅ Database v4.1 (Fitur BNBA) Ter-setup!');
+}
+
+function createSheetIfNotExists(ss, name, headers) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold').setBackground('#f1f5f9');
+  }
+  return sheet;
+}
+
+function doGet(e) { return ContentService.createTextOutput("Backend SIPBAN Aktif").setMimeType(ContentService.MimeType.TEXT); }
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+    const payload = data.payload;
+    let result = {};
+
+    switch(action) {
+      case 'login': result = handleLogin(payload); break;
+      case 'getConfig': result = handleGetConfig(); break;
+      case 'updateConfig': result = handleUpdateConfig(payload); break;
+      case 'getPublicStats': result = handleGetPublicStats(); break;
+      case 'getData': result = handleGetData(payload); break;
+      case 'createLaporan': result = handleCreateLaporan(payload); break;
+      case 'submitSurvey': result = handleSubmitSurvey(payload); break;
+      case 'editLaporan': result = handleEditLaporan(payload); break;
+      case 'deleteLaporan': result = handleDeleteLaporan(payload); break;
+      case 'submitBantuan': result = handleSubmitBantuan(payload); break;
+      case 'getLogPerbaikan': result = handleGetLogPerbaikan(payload); break;
+      case 'getUsers': result = handleGetUsers(); break;
+      case 'createUser': result = handleCreateUser(payload); break;
+      case 'deleteUser': result = handleDeleteUser(payload); break;
+      default: throw new Error("Aksi tidak valid");
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({status: 'error', message: error.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ==========================================
+// HANDLERS
+// ==========================================
+function handleLogin(p) {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.USERS).getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === p.username && data[i][2] === p.password) return { status: 'success', data: { username: data[i][1], role: data[i][3] } };
+  }
+  throw new Error("Username atau password salah");
+}
+
+function fetchConfigData() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SETTINGS);
+  const data = sheet.getDataRange().getValues();
+  let conf = { phase: 'BNBA 1', status: 'closed' };
+  for(let i=1; i<data.length; i++){
+    if(data[i][0] === 'active_phase') conf.phase = data[i][1];
+    if(data[i][0] === 'phase_status') conf.status = data[i][1];
+  }
+  return conf;
+}
+
+function handleGetConfig() {
+  return { status: 'success', data: fetchConfigData() };
+}
+
+function handleUpdateConfig(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SETTINGS);
+  const data = sheet.getDataRange().getValues();
+  for(let i=1; i<data.length; i++){
+    if(data[i][0] === 'active_phase') sheet.getRange(i+1, 2).setValue(p.phase);
+    if(data[i][0] === 'phase_status') sheet.getRange(i+1, 2).setValue(p.status);
+  }
+  return { status: 'success' };
+}
+
+function handleGetPublicStats() {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH).getDataRange().getValues();
+  let total = data.length - 1, berat = 0, sedang = 0, ringan = 0, verified = 0;
+  for(let i=1; i<data.length; i++) {
+    if(data[i][10] === 'Rusak Berat') berat++;
+    if(data[i][10] === 'Rusak Sedang') sedang++;
+    if(data[i][10] === 'Rusak Ringan') ringan++;
+    if(data[i][18] === 'Terverifikasi') verified++;
+  }
+  return { status: 'success', data: { total, berat, sedang, ringan, verified } };
+}
+
+function handleGetData(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = ss.getSheetByName(SHEET_NAMES.DATA_RUMAH).getDataRange().getValues();
+  const bantuanData = ss.getSheetByName(SHEET_NAMES.DATA_BANTUAN).getDataRange().getValues();
+  
+  let mapBantuan = {};
+  for(let i=1; i<bantuanData.length; i++) { mapBantuan[bantuanData[i][0]] = { jenis: bantuanData[i][1], ket: bantuanData[i][2] }; }
+
+  let result = [];
+  for (let i = 1; i < data.length; i++) {
+    let item = {
+      id: data[i][0],
+      petugas_username: data[i][1],
+      surveyor_username: data[i][2],
+      nama_pemilik: data[i][3], nik: data[i][4], no_kk: data[i][5],
+      dusun: data[i][6], desa: data[i][7], kecamatan: data[i][8],
+      koordinat: data[i][9], tingkat_kerusakan: data[i][10], kebutuhan_mendesak: data[i][11],
+      foto_1: data[i][12], foto_2: data[i][13], foto_3: data[i][14],
+      foto_4: data[i][15], foto_5: data[i][16], foto_6: data[i][17],
+      status: data[i][18],
+      created_at: data[i][19],
+      fase_bnba: data[i][20] || 'Tidak Terdefinisi', // Fallback untuk data lama
+      jenis_bantuan: mapBantuan[data[i][0]]?.jenis || null,
+      keterangan_bantuan: mapBantuan[data[i][0]]?.ket || null
+    };
+
+    if(p.role === 'petugas' && item.petugas_username === p.username) result.push(item);
+    else if(p.role === 'surveyor' && item.status === 'Menunggu Survey') result.push(item); 
+    else if(p.role === 'surveyor' && item.surveyor_username === p.username) result.push(item); 
+    else if(['admin', 'petugas_kecamatan'].includes(p.role)) result.push(item); 
+  }
+  return { status: 'success', data: result.reverse() }; 
+}
+
+function uploadFotosToDrive(fotosArray, rowId) {
+  let uploadedUrls = {1:'', 2:'', 3:'', 4:'', 5:'', 6:''};
+  if(!fotosArray || fotosArray.length === 0) return uploadedUrls;
+  let folders = DriveApp.getFoldersByName(FOLDER_NAME_FOTO);
+  let folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(FOLDER_NAME_FOTO);
+  
+  fotosArray.forEach(f => {
+    let blob = Utilities.newBlob(Utilities.base64Decode(f.data), f.mime, `F${f.index}_${rowId}_${f.name}`);
+    let file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    uploadedUrls[f.index] = file.getUrl();
+  });
+  return uploadedUrls;
+}
+
+function handleCreateLaporan(p) {
+  const conf = fetchConfigData();
+  // Validasi Pencegahan Input saat Fase Ditutup (Admin boleh by-pass jika dibutuhkan, tapi untuk skenario ini kita block semua agar disiplin data)
+  if(conf.status !== 'open' && p.role === 'petugas') throw new Error("Fase Pendataan BNBA sedang ditutup.");
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH);
+  const newId = Date.now().toString();
+  const d = p.identitas;
+  
+  // Note: Parameter ke-21 adalah fase_bnba (indeks array ke-20)
+  sheet.appendRow([
+    newId, p.username, '', d.nama, d.nik, d.kk, d.dusun, d.desa, d.kec, 
+    '', '', '', '', '', '', '', '', '', 'Menunggu Survey', new Date().toISOString(), conf.phase
+  ]);
+  return { status: 'success' };
+}
+
+function handleSubmitSurvey(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == p.id) {
+      let urls = uploadFotosToDrive(p.fotos, p.id);
+      let s = p.survey;
+      
+      sheet.getRange(i+1, 3).setValue(p.username); 
+      sheet.getRange(i+1, 10).setValue(s.koordinat);
+      sheet.getRange(i+1, 11).setValue(s.rusak);
+      sheet.getRange(i+1, 12).setValue(s.kebutuhan);
+      
+      for(let j=1; j<=6; j++) { if(urls[j]) sheet.getRange(i+1, 12+j).setValue(urls[j]); }
+      sheet.getRange(i+1, 19).setValue('Pending'); 
+      return { status: 'success' };
+    }
+  }
+  throw new Error("Data tidak ditemukan");
+}
+
+function handleEditLaporan(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DATA_RUMAH);
+  const logSheet = ss.getSheetByName(SHEET_NAMES.LOG_PERBAIKAN);
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == p.id) {
+      const old = data[i];
+      let logsToAppend = [];
+      
+      if(p.identitas) {
+        if(old[3] != p.identitas.nama) logsToAppend.push([p.id, 'Nama Pemilik', old[3], p.identitas.nama, p.username, new Date().toISOString()]);
+        if(old[4] != p.identitas.nik) logsToAppend.push([p.id, 'NIK', old[4], p.identitas.nik, p.username, new Date().toISOString()]);
+        if(old[5] != p.identitas.kk) logsToAppend.push([p.id, 'No KK', old[5], p.identitas.kk, p.username, new Date().toISOString()]);
+        
+        sheet.getRange(i+1, 4, 1, 6).setValues([[p.identitas.nama, p.identitas.nik, p.identitas.kk, p.identitas.dusun, p.identitas.desa, p.identitas.kec]]);
+      }
+      
+      if(p.survey) {
+        sheet.getRange(i+1, 10, 1, 3).setValues([[p.survey.koordinat, p.survey.rusak, p.survey.kebutuhan]]);
+        if(p.fotos && p.fotos.length > 0) {
+          let urls = uploadFotosToDrive(p.fotos, p.id);
+          for(let j=1; j<=6; j++) { if(urls[j]) sheet.getRange(i+1, 12+j).setValue(urls[j]); }
+        }
+      }
+      
+      if(p.status) sheet.getRange(i+1, 19).setValue(p.status);
+      logsToAppend.forEach(log => logSheet.appendRow(log));
+      
+      return { status: 'success' };
+    }
+  }
+  throw new Error("Data tidak ditemukan");
+}
+
+function handleDeleteLaporan(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == p.id) {
+      sheet.deleteRow(i + 1);
+      return { status: 'success' };
+    }
+  }
+  throw new Error("Gagal menghapus");
+}
+
+function handleSubmitBantuan(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_BANTUAN);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == p.id_laporan) {
+      sheet.getRange(i+1, 2, 1, 3).setValues([[p.jenis, p.keterangan, new Date().toISOString()]]);
+      return { status: 'success' };
+    }
+  }
+  sheet.appendRow([p.id_laporan, p.jenis, p.keterangan, new Date().toISOString()]);
+  return { status: 'success' };
+}
+
+function handleGetLogPerbaikan(p) {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.LOG_PERBAIKAN).getDataRange().getValues();
+  let result = [];
+  for(let i=1; i<data.length; i++){
+    if(data[i][0] == p.id_laporan) result.push({ field: data[i][1], old_value: data[i][2], new_value: data[i][3], admin_user: data[i][4], timestamp: data[i][5] });
+  }
+  return { status: 'success', data: result.reverse() };
+}
+
+function handleGetUsers() {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.USERS).getDataRange().getValues();
+  let result = [];
+  for(let i=1; i<data.length; i++) { result.push({ username: data[i][1], role: data[i][3], created_at: data[i][4] }); }
+  return { status: 'success', data: result };
+}
+
+function handleCreateUser(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.USERS);
+  const data = sheet.getDataRange().getValues();
+  for(let i=1; i<data.length; i++) { if(data[i][1] === p.username) throw new Error("Username sudah dipakai"); }
+  sheet.appendRow([Date.now().toString(), p.username, p.password, p.role, new Date().toISOString()]);
+  return { status: 'success' };
+}
+
+function handleDeleteUser(p) {
+  if(p.username === 'admin') throw new Error("Admin utama tidak bisa dihapus!");
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.USERS);
+  const data = sheet.getDataRange().getValues();
+  for(let i=1; i<data.length; i++) {
+    if(data[i][1] === p.username) {
+      sheet.deleteRow(i+1);
+      return { status: 'success' };
+    }
+  }
+  throw new Error("User tidak ditemukan");
+}
