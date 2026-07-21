@@ -873,23 +873,24 @@
                 const select = document.getElementById('filter-fase');
                 if (!select) return;
                 
-                // Ambil daftar fase unik dari data yang ada
-                const uniqueFase = [...new Set(this.state.dataRumah.map(item => item.fase_bnba).filter(f => f && f !== '-'))].sort();
+                // Ambil daftar fase unik dari data yang ada, abaikan yang Rumah Dinas untuk list BNBA
+                const uniqueFase = [...new Set(this.state.dataRumah.filter(i => i.jenis_kepemilikan !== 'Rumah Dinas').map(item => item.fase_bnba).filter(f => f && f !== '-'))].sort();
                 const currentValue = select.value;
                 
-                let html = '<option value="">Semua Fase</option>';
+                let html = '<option value="">Semua Fase & Dinas</option>';
+                html += '<option value="Rumah Dinas">🏢 Khusus Rumah Dinas</option>';
+                
                 uniqueFase.forEach(fase => {
                     html += `<option value="${fase}">${fase}</option>`;
                 });
                 select.innerHTML = html;
                 
-                // Pertahankan pilihan user jika masih ada di daftar
-                if (uniqueFase.includes(currentValue)) {
+                if (uniqueFase.includes(currentValue) || currentValue === 'Rumah Dinas') {
                     select.value = currentValue;
                 }
             },
 
-            updateDesaFilter() {
+            updateDesaFilter() { 
                 const select = document.getElementById('filter-desa');
                 if (!select) return;
                 
@@ -1010,19 +1011,27 @@
 
                     const infoBantuan = item.jenis_bantuan ? `<div class="text-xs font-bold text-green-600">${item.jenis_bantuan}</div>${item.no_sk_bantuan ? `<div class="text-[9px] font-mono text-slate-600 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded mt-0.5 inline-block">SK: ${item.no_sk_bantuan}</div>` : ''}<div class="text-[9px] text-slate-500 truncate w-24 mt-0.5">${item.keterangan_bantuan||'-'}</div>` : `<span class="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-400">Belum Ada</span>`;
 
+                    // LABEL KHUSUS RUMAH DINAS (MENGGANTIKAN FASE BNBA)
+                    const badgeFase = item.jenis_kepemilikan === 'Rumah Dinas' ? 
+                        `<div class="mt-0.5 inline-block px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-bold border border-amber-200 shadow-sm"><i class="ph-bold ph-buildings"></i> RUMAH DINAS</div>` : 
+                        `<div class="mt-0.5 inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">${item.fase_bnba || 'BNBA -'}</div>`;
+
+                    const infoInstansi = item.jenis_kepemilikan === 'Rumah Dinas' ? 
+                        `<div class="mt-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block border border-amber-100"><i class="ph-bold ph-identification-badge"></i> Instansi: ${item.nama_instansi || '-'}</div>` : '';
+
                     return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                         <td class="px-4 py-3 pl-6">
                             <div class="font-mono text-[9px] text-slate-400">#${item.id}</div>
-                            <div class="mt-0.5 inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">${item.fase_bnba || 'BNBA -'}</div>
+                            ${badgeFase}
                         </td>
                         <td class="px-4 py-3">
                             <div class="font-bold text-sm text-slate-900 dark:text-white">${item.nama_pemilik}</div>
-                            <div class="text-[9px] text-slate-500 mt-0.5">NIK: ${item.nik} <br> KK: ${item.no_kk}</div>
+                            <div class="text-[9px] text-slate-500 mt-0.5 mb-1">NIK: ${item.nik} <br> KK: ${item.no_kk}</div>
+                            ${infoInstansi}
                             ${item.keterangan_ganda ? `<div class="mt-1.5 px-2 py-1 bg-red-100 text-red-700 rounded text-[9px] font-bold animate-pulse inline-block w-full whitespace-normal leading-tight">${item.keterangan_ganda}</div>` : ''}
                         </td>
-                        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">
-                            <div>${item.dusun}, Ds. ${item.desa}</div>
+                        <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">                            <div>${item.dusun}, Ds. ${item.desa}</div>
                             <div class="text-[10px] font-bold opacity-70">Kec. ${item.kecamatan}</div>
                         </td>
                         <td class="px-4 py-3">
@@ -1064,18 +1073,23 @@
                     if (filterBantuan === 'belum') matchBantuan = (jenisBantuan === 'Belum Ada' || jenisBantuan === '');
                     if (filterBantuan === 'sudah') matchBantuan = (jenisBantuan !== 'Belum Ada' && jenisBantuan !== '');
                     
-                    // Logika Filter Kerusakan
+                   // Logika Filter Kerusakan
                     let matchKerusakan = true;
                     if (filterKerusakan === 'kosong') matchKerusakan = (tingkatKerusakan === '');
                     else if (filterKerusakan !== '') matchKerusakan = (tingkatKerusakan === filterKerusakan);
                     
-                    // Logika Filter Fase
-                    const matchFase = filterFase === '' || faseBNBA === filterFase;
+                    // Logika Filter Fase & Rumah Dinas
+                    let matchFase = true;
+                    if (filterFase === 'Rumah Dinas') {
+                        matchFase = (i.jenis_kepemilikan === 'Rumah Dinas');
+                    } else if (filterFase !== '') {
+                        matchFase = (faseBNBA === filterFase && i.jenis_kepemilikan !== 'Rumah Dinas');
+                    }
                     
                     return matchText && matchDesa && matchBantuan && matchKerusakan && matchFase;
                 });
                 
-                this.state.currentPage = 1; 
+                this.state.currentPage = 1;
                 this.resetDashboardTitle();
                 this.renderTable();
             },
