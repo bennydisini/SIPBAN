@@ -220,16 +220,32 @@
             
             <!-- DATA TABLE -->
             <div class="bg-white dark:bg-darkcard rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div class="p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row justify-between items-center gap-4">
                     <h3 class="font-bold text-lg whitespace-nowrap">Basis Data Kerusakan</h3>
-                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div class="flex flex-wrap justify-start lg:justify-end gap-2 w-full lg:w-auto">
+                        <!-- Filter Bantuan -->
+                        <select id="filter-bantuan" onchange="app.filterTable()" class="w-full sm:w-auto px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none font-semibold text-slate-600 dark:text-slate-300">
+                            <option value="">Semua Bantuan</option>
+                            <option value="belum">Belum Ada Bantuan</option>
+                            <option value="sudah">Sudah Ada Bantuan</option>
+                        </select>
+                        
+                        <!-- Filter Kerusakan -->
+                        <select id="filter-kerusakan" onchange="app.filterTable()" class="w-full sm:w-auto px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none font-semibold text-slate-600 dark:text-slate-300">
+                            <option value="">Semua Kerusakan</option>
+                            <option value="kosong">Belum Ditentukan</option>
+                            <option value="Rusak Ringan">Rusak Ringan</option>
+                            <option value="Rusak Sedang">Rusak Sedang</option>
+                            <option value="Rusak Berat">Rusak Berat</option>
+                        </select>
+
                         <!-- Dropdown Filter Kampung -->
-                        <select id="filter-desa" onchange="app.filterTable()" class="w-full sm:w-48 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none font-semibold text-slate-600 dark:text-slate-300">
+                        <select id="filter-desa" onchange="app.filterTable()" class="w-full sm:w-auto px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none font-semibold text-slate-600 dark:text-slate-300">
                             <option value="">Semua Kampung</option>
                         </select>
                         
                         <!-- Input Pencarian -->
-                        <div class="relative w-full sm:w-72">
+                        <div class="relative w-full sm:w-60">
                             <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input type="text" id="search-input" placeholder="Cari NIK / KK / Nama..." onkeyup="app.filterTable()" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
                         </div>
@@ -732,7 +748,12 @@
                 document.getElementById('dashboard-role').innerHTML = `<i class="ph-fill ph-user-circle text-lg"></i> ${this.state.currentUser.username}`;
                 
                 document.getElementById('search-input').value = '';
-                if(document.getElementById('filter-desa')) document.getElementById('filter-desa').value = '';
+                if(document.getElementById('filter-bantuan')) document.getElementById('filter-bantuan').value = '';
+                if(document.getElementById('filter-kerusakan')) document.getElementById('filter-kerusakan').value = '';
+                
+                const filterDesa = document.getElementById('filter-desa');
+                if(filterDesa) {
+                    filterDesa.value = '';
 
                 const actions = document.getElementById('dashboard-actions');
                 actions.innerHTML = '';
@@ -920,18 +941,32 @@
 
             filterTable() {
                 const q = document.getElementById('search-input').value.toLowerCase();
-                const filterDesa = document.getElementById('filter-desa') && !document.getElementById('filter-desa').classList.contains('hidden') ? document.getElementById('filter-desa').value.toLowerCase() : '';
+                const filterDesa = document.getElementById('filter-desa') ? document.getElementById('filter-desa').value.toLowerCase() : '';
+                const filterBantuan = document.getElementById('filter-bantuan') ? document.getElementById('filter-bantuan').value : '';
+                const filterKerusakan = document.getElementById('filter-kerusakan') ? document.getElementById('filter-kerusakan').value : '';
                 
                 this.state.filteredData = this.state.dataRumah.filter(i => {
                     const nama = (i.nama_pemilik || '').toString().toLowerCase();
                     const nik = (i.nik || '').toString().toLowerCase();
                     const kk = (i.no_kk || '').toString().toLowerCase();
                     const desa = (i.desa || '').toString().toLowerCase();
+                    const jenisBantuan = i.jenis_bantuan || 'Belum Ada';
+                    const tingkatKerusakan = i.tingkat_kerusakan || '';
                     
                     const matchText = q === '' || nama.includes(q) || nik.includes(q) || kk.includes(q) || desa.includes(q);
                     const matchDesa = filterDesa === '' || desa === filterDesa;
                     
-                    return matchText && matchDesa;
+                    // Logika Filter Bantuan
+                    let matchBantuan = true;
+                    if (filterBantuan === 'belum') matchBantuan = (jenisBantuan === 'Belum Ada' || jenisBantuan === '');
+                    if (filterBantuan === 'sudah') matchBantuan = (jenisBantuan !== 'Belum Ada' && jenisBantuan !== '');
+                    
+                    // Logika Filter Kerusakan
+                    let matchKerusakan = true;
+                    if (filterKerusakan === 'kosong') matchKerusakan = (tingkatKerusakan === '');
+                    else if (filterKerusakan !== '') matchKerusakan = (tingkatKerusakan === filterKerusakan);
+                    
+                    return matchText && matchDesa && matchBantuan && matchKerusakan;
                 });
                 
                 this.state.currentPage = 1; 
