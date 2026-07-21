@@ -337,6 +337,37 @@
                 </div>
             </div>
         </section>
+
+        <!-- 5. MENU DATA RUMAH DINAS -->
+        <section id="page-dinas" class="hidden space-y-6 fade-in">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-center md:text-left">
+                    <h2 class="text-2xl font-black">Data Rumah Dinas</h2>
+                    <p class="text-slate-500 text-sm">Pendataan khusus penghuni instansi/perusahaan.</p>
+                </div>
+                <button onclick="app.openFormDinas()" class="w-full md:w-auto bg-amber-500 text-white px-5 py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-amber-600 transition shadow-lg"><i class="ph-bold ph-plus"></i> Tambah Data Dinas</button>
+            </div>
+            
+            <div class="bg-white dark:bg-darkcard rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left whitespace-nowrap min-w-[700px]">
+                        <thead class="bg-amber-50 dark:bg-amber-900/20 text-xs font-bold uppercase text-amber-800 dark:text-amber-500">
+                            <tr>
+                                <th class="px-6 py-4">Nama Penghuni & Identitas</th>
+                                <th class="px-6 py-4">Instansi / Perusahaan</th>
+                                <th class="px-6 py-4">Lokasi</th>
+                                <th class="px-6 py-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dinas-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                    <div id="dinas-empty-state" class="hidden p-12 text-center text-slate-400">
+                        <i class="ph-duotone ph-buildings text-5xl mb-3 opacity-50"></i>
+                        <p class="font-semibold text-base">Belum ada data rumah dinas</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- FOOTER NAVIGASI (BOTTOM NAV) -->
@@ -473,12 +504,49 @@
         </div>
     </div>
 
+    <!-- MODAL 5: Form Rumah Dinas -->
+    <div id="modal-dinas" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-darkcard w-full max-w-lg rounded-3xl p-0 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-amber-50 dark:bg-amber-900/20 flex justify-between items-center text-amber-900 dark:text-amber-100">
+                <h3 id="modal-dinas-title" class="text-lg font-black flex items-center gap-2"><i class="ph-fill ph-buildings"></i> Form Rumah Dinas</h3>
+                <button type="button" onclick="app.closeModal('modal-dinas')" class="w-8 h-8 flex items-center justify-center rounded-full bg-amber-200/50 dark:bg-amber-800/50 hover:bg-amber-200 transition"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="dinas-form" class="space-y-4">
+                    <input type="hidden" id="dinas-id">
+                    
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-sm text-slate-700 dark:text-slate-300 border-b pb-1">Data Penghuni</h4>
+                        <div><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Nama Lengkap</label><input type="text" id="dinas-nama" required class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">NIK (16 Digit)</label><input type="text" id="dinas-nik" required pattern="[0-9]{16}" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                            <div><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">No. KK (16 Digit)</label><input type="text" id="dinas-kk" required pattern="[0-9]{16}" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-3 mt-3 border-t border-slate-100 dark:border-slate-800">
+                        <h4 class="font-bold text-sm text-slate-700 dark:text-slate-300 border-b pb-1">Instansi & Lokasi</h4>
+                        <div><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Nama Instansi/Perusahaan</label><input type="text" id="dinas-instansi" required placeholder="PT. Perkebunan / Dinas Pendidikan..." class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-1"><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Dusun</label><input type="text" id="dinas-dusun" required class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                            <div class="col-span-1"><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Kampung</label><input type="text" id="dinas-desa" required class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                            <div class="col-span-1"><label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Kecamatan</label><input type="text" id="dinas-kecamatan" required class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-amber-500 text-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 pt-4 border-t border-slate-100 dark:border-slate-800"><button type="button" onclick="app.closeModal('modal-dinas')" class="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-semibold">Batal</button><button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-bold transition shadow-md">Simpan Data</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT UTAMA -->
     <script>
         const app = {
             state: {
                 currentUser: null,
                 dataRumah: [],
+                dataDinas: [],
                 filteredData: [], 
                 currentPage: 1,
                 itemsPerPage: 10,
@@ -555,13 +623,14 @@
             },
 
             showPage(pageId) {
-                ['page-landing', 'page-login', 'page-dashboard', 'page-users'].forEach(p => {
+                ['page-landing', 'page-login', 'page-dashboard', 'page-users', 'page-dinas'].forEach(p => {
                     document.getElementById(p).classList.add('hidden');
                 });
                 document.getElementById('page-' + pageId).classList.remove('hidden');
                 
                 if (pageId === 'dashboard') this.renderDashboard();
                 if (pageId === 'users' && this.state.currentUser?.role === 'admin') this.fetchUsers();
+                if (pageId === 'dinas') this.fetchDinas();
                 if (pageId === 'landing') this.fetchPublicStats();
                 
                 this.updateNavUI(pageId); 
@@ -590,6 +659,10 @@
                     <button onclick="app.showPage('dashboard')" class="flex flex-col items-center p-2 transition ${getNavClass('dashboard')}">
                         <i class="ph-fill ph-squares-four text-[22px]"></i><span class="text-[9px] font-bold mt-1">Dasbor</span>
                     </button>
+                    ${['admin', 'petugas', 'petugas_kecamatan'].includes(user?.role) ? `
+                    <button onclick="app.showPage('dinas')" class="flex flex-col items-center p-2 transition ${getNavClass('dinas')}">
+                        <i class="ph-fill ph-buildings text-[22px]"></i><span class="text-[9px] font-bold mt-1">Dinas</span>
+                    </button>` : ''}
                     ${isAdmin ? `
                     <button onclick="app.showPage('users')" class="flex flex-col items-center p-2 transition ${getNavClass('users')}">
                         <i class="ph-fill ph-users text-[22px]"></i><span class="text-[9px] font-bold mt-1">Pengguna</span>
@@ -1360,6 +1433,110 @@
                 });
             },
 
+            // =====================================
+            // LOGIKA MENU RUMAH DINAS
+            // =====================================
+            async fetchDinas() {
+                this.showLoading(true);
+                try {
+                    const res = await this.gasFetch('getDinas', { username: this.state.currentUser.username, role: this.state.currentUser.role });
+                    if(res.status === 'success') {
+                        this.state.dataDinas = res.data;
+                        this.renderDinasTable();
+                    }
+                } catch (e) { this.showToast(e.message, 'error'); } finally { this.showLoading(false); }
+            },
+
+            renderDinasTable() {
+                const tbody = document.getElementById('dinas-table-body');
+                const empty = document.getElementById('dinas-empty-state');
+                const dataList = this.state.dataDinas;
+                
+                if(dataList.length === 0) { 
+                    tbody.innerHTML = ''; 
+                    empty.classList.remove('hidden'); 
+                    return; 
+                }
+                
+                empty.classList.add('hidden');
+                const isAdmin = this.state.currentUser.role === 'admin';
+
+                tbody.innerHTML = dataList.map(item => `
+                    <tr class="border-b border-slate-50 dark:border-slate-800 hover:bg-amber-50 dark:hover:bg-slate-800/50 transition">
+                        <td class="px-6 py-4">
+                            <div class="font-black text-sm text-slate-800 dark:text-white">${item.nama_penghuni}</div>
+                            <div class="text-[10px] text-slate-500 font-mono mt-0.5">NIK: ${item.nik} <br> KK: ${item.no_kk}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm flex items-center gap-1.5 w-max"><i class="ph-fill ph-buildings"></i> ${item.nama_instansi}</span>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">
+                            <div>${item.dusun}, Ds. ${item.desa}</div><div class="opacity-70 font-bold text-[10px] mt-0.5">Kec. ${item.kecamatan}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center flex justify-center gap-2">
+                            <button onclick="app.openFormDinas('${item.id}')" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg shadow-sm"><i class="ph-bold ph-pencil-simple"></i></button>
+                            ${isAdmin ? `<button onclick="app.deleteDinas('${item.id}')" class="p-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg shadow-sm"><i class="ph-bold ph-trash"></i></button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            },
+
+            openFormDinas(id = null) {
+                document.getElementById('dinas-form').reset();
+                document.getElementById('dinas-id').value = id || '';
+                document.getElementById('modal-dinas-title').innerHTML = id ? '<i class="ph-fill ph-buildings"></i> Edit Rumah Dinas' : '<i class="ph-fill ph-buildings"></i> Tambah Rumah Dinas';
+                
+                if (id) {
+                    const item = this.state.dataDinas.find(d => d.id == id);
+                    if (item) {
+                        document.getElementById('dinas-nama').value = item.nama_penghuni;
+                        document.getElementById('dinas-nik').value = item.nik;
+                        document.getElementById('dinas-kk').value = item.no_kk;
+                        document.getElementById('dinas-instansi').value = item.nama_instansi;
+                        document.getElementById('dinas-dusun').value = item.dusun;
+                        document.getElementById('dinas-desa').value = item.desa;
+                        document.getElementById('dinas-kecamatan').value = item.kecamatan;
+                    }
+                }
+                document.getElementById('modal-dinas').classList.remove('hidden');
+            },
+
+            async handleDinasSubmit(e) {
+                e.preventDefault();
+                this.showLoading(true);
+                try {
+                    const payload = {
+                        id: document.getElementById('dinas-id').value,
+                        username: this.state.currentUser.username,
+                        data: {
+                            nama_penghuni: document.getElementById('dinas-nama').value,
+                            nik: document.getElementById('dinas-nik').value,
+                            no_kk: document.getElementById('dinas-kk').value,
+                            nama_instansi: document.getElementById('dinas-instansi').value,
+                            dusun: document.getElementById('dinas-dusun').value,
+                            desa: document.getElementById('dinas-desa').value,
+                            kecamatan: document.getElementById('dinas-kecamatan').value
+                        }
+                    };
+                    const res = await this.gasFetch('saveDinas', payload);
+                    if (res.status === 'success') {
+                        this.showToast('Data Rumah Dinas berhasil disimpan!');
+                        this.closeModal('modal-dinas');
+                        this.fetchDinas();
+                    } else throw new Error(res.message);
+                } catch (e) { this.showToast(e.message, 'error'); } finally { this.showLoading(false); }
+            },
+
+            deleteDinas(id) {
+                this.showConfirmModal('Hapus Data', 'Yakin menghapus data rumah dinas ini?', async () => {
+                    this.showLoading(true);
+                    try {
+                        const res = await this.gasFetch('deleteDinas', { id });
+                        if (res.status === 'success') { this.showToast('Data dihapus!'); this.fetchDinas(); }
+                    } finally { this.showLoading(false); }
+                });
+            },
+
             mockGasFetch(action, payload) {
                 return new Promise(resolve => {
                     setTimeout(() => {
@@ -1437,6 +1614,15 @@
                                 data: [{ admin_user: 'admin', field: 'Nama', old_value: 'Budi', new_value: 'Budi W.', timestamp: new Date().toISOString() }]
                             });
                         }
+                        else if (action === 'getDinas') {
+                            resolve({ status: 'success', data: [{ id: '123', petugas_username: 'admin', nama_penghuni: 'Supriyadi', nik: '1234123412341234', no_kk: '9876987698769876', nama_instansi: 'Dinas Kehutanan', dusun: 'Timur', desa: 'Maju', kecamatan: 'Jaya', created_at: new Date().toISOString() }] });
+                        }
+                        else if (['saveDinas', 'deleteDinas'].includes(action)) { resolve({ status: 'success' }); }
+                        else {
+                            resolve({ status: 'error', message: 'Unknown action' });
+                        }
+                    }, 600);
+                });
                         else {
                             resolve({ status: 'error', message: 'Unknown action' });
                         }
@@ -1533,6 +1719,7 @@
         document.getElementById('laporan-form').addEventListener('submit', (e) => app.handleFormSubmit(e));
         document.getElementById('bantuan-form').addEventListener('submit', (e) => app.handleBantuanSubmit(e));
         document.getElementById('user-form').addEventListener('submit', (e) => app.handleUserSubmit(e));
+        document.getElementById('dinas-form').addEventListener('submit', (e) => app.handleDinasSubmit(e));
 
         document.addEventListener('DOMContentLoaded', () => app.init());
     </script>
