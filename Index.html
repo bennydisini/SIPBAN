@@ -239,6 +239,11 @@
                             <option value="Rusak Berat">Rusak Berat</option>
                         </select>
 
+                        <!-- Filter Fase -->
+                        <select id="filter-fase" onchange="app.filterTable()" class="w-full sm:w-auto px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none font-semibold text-slate-600 dark:text-slate-300">
+                            <option value="">Semua Fase</option>
+                        </select>
+
                         <!-- Dropdown Filter Kampung -->
                         <select id="filter-desa" onchange="app.filterTable()" class="w-full sm:w-auto px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none font-semibold text-slate-600 dark:text-slate-300">
                             <option value="">Semua Kampung</option>
@@ -750,11 +755,13 @@
                 document.getElementById('search-input').value = '';
                 if(document.getElementById('filter-bantuan')) document.getElementById('filter-bantuan').value = '';
                 if(document.getElementById('filter-kerusakan')) document.getElementById('filter-kerusakan').value = '';
+                if(document.getElementById('filter-fase')) document.getElementById('filter-fase').value = '';
                 
                 const filterDesa = document.getElementById('filter-desa');
                 if(filterDesa) {
                     filterDesa.value = '';
                 }
+
                 const actions = document.getElementById('dashboard-actions');
                 actions.innerHTML = '';
                 const isClosed = this.state.config?.status === 'closed';
@@ -782,10 +789,31 @@
                     if(res.status === 'success') { 
                         this.state.dataRumah = res.data;
                         this.updateDesaFilter();
+                        this.updateFaseFilter();
                         this.resetDashboardTitle();
                         this.filterTable(); 
                     }
                 } finally { this.showLoading(false); }
+            },
+
+            updateFaseFilter() {
+                const select = document.getElementById('filter-fase');
+                if (!select) return;
+                
+                // Ambil daftar fase unik dari data yang ada
+                const uniqueFase = [...new Set(this.state.dataRumah.map(item => item.fase_bnba).filter(f => f && f !== '-'))].sort();
+                const currentValue = select.value;
+                
+                let html = '<option value="">Semua Fase</option>';
+                uniqueFase.forEach(fase => {
+                    html += `<option value="${fase}">${fase}</option>`;
+                });
+                select.innerHTML = html;
+                
+                // Pertahankan pilihan user jika masih ada di daftar
+                if (uniqueFase.includes(currentValue)) {
+                    select.value = currentValue;
+                }
             },
 
             updateDesaFilter() {
@@ -944,6 +972,7 @@
                 const filterDesa = document.getElementById('filter-desa') ? document.getElementById('filter-desa').value.toLowerCase() : '';
                 const filterBantuan = document.getElementById('filter-bantuan') ? document.getElementById('filter-bantuan').value : '';
                 const filterKerusakan = document.getElementById('filter-kerusakan') ? document.getElementById('filter-kerusakan').value : '';
+                const filterFase = document.getElementById('filter-fase') ? document.getElementById('filter-fase').value : '';
                 
                 this.state.filteredData = this.state.dataRumah.filter(i => {
                     const nama = (i.nama_pemilik || '').toString().toLowerCase();
@@ -952,6 +981,7 @@
                     const desa = (i.desa || '').toString().toLowerCase();
                     const jenisBantuan = i.jenis_bantuan || 'Belum Ada';
                     const tingkatKerusakan = i.tingkat_kerusakan || '';
+                    const faseBNBA = i.fase_bnba || '';
                     
                     const matchText = q === '' || nama.includes(q) || nik.includes(q) || kk.includes(q) || desa.includes(q);
                     const matchDesa = filterDesa === '' || desa === filterDesa;
@@ -966,7 +996,10 @@
                     if (filterKerusakan === 'kosong') matchKerusakan = (tingkatKerusakan === '');
                     else if (filterKerusakan !== '') matchKerusakan = (tingkatKerusakan === filterKerusakan);
                     
-                    return matchText && matchDesa && matchBantuan && matchKerusakan;
+                    // Logika Filter Fase
+                    const matchFase = filterFase === '' || faseBNBA === filterFase;
+                    
+                    return matchText && matchDesa && matchBantuan && matchKerusakan && matchFase;
                 });
                 
                 this.state.currentPage = 1; 
