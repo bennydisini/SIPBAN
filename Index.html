@@ -894,9 +894,9 @@
                     const kerusakanColor = item.tingkat_kerusakan === 'Rusak Berat' ? 'text-red-500 font-bold' : item.tingkat_kerusakan === 'Rusak Sedang' ? 'text-orange-500 font-bold' : 'text-slate-500';
                     
                     const btnEdit = `<button onclick="app.openFormLaporan('${item.id}')" class="p-2 bg-blue-50 text-blue-500 rounded-lg hover:bg-blue-100"><i class="ph-bold ph-pencil-simple"></i></button>`;
-                    const btnBantuan = `<button onclick="app.openFormBantuan('${item.id}', '${item.nama_pemilik}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><i class="ph-bold ph-hand-coins"></i></button>`;
+                    const btnBantuan = `<button onclick="app.openFormBantuan('${item.id}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100"><i class="ph-bold ph-hand-coins"></i></button>`;
                     const btnLog = `<button onclick="app.viewLog('${item.id}')" class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100"><i class="ph-bold ph-clock-counter-clockwise"></i></button>`;
-                    const btnDel = `<button onclick="app.confirmDeleteLaporan('${item.id}')" class="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><i class="ph-bold ph-trash"></i></button>`;
+                    const btnDel = `<button onclick="app.confirmDeleteLaporan('${item.id}')" class="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><i class="ph-bold ph-trash"></i></button>`;                    
                     
                     let actionButtons = '';
                     if (role === 'admin') { actionButtons = `<div class="flex gap-1.5 justify-center">${btnEdit} ${btnBantuan} ${btnLog} ${btnDel}</div>`; } 
@@ -1189,7 +1189,7 @@
                 } catch(err) { this.showToast(err.message, "error"); } finally { this.showLoading(false); }
             },
 
-            confirmDeleteLaporan(id) {
+              confirmDeleteLaporan(id) {
                 this.showConfirmModal('Hapus Laporan', 'Yakin menghapus data?', async () => {
                     this.showLoading(true);
                     try {
@@ -1199,12 +1199,14 @@
                 });
             },
 
-            openFormBantuan(id, nama) {
+            openFormBantuan(id) {
                 document.getElementById('bantuan-form').reset(); 
                 document.getElementById('bantuan-id-laporan').value = id; 
-                document.getElementById('bantuan-nama-warga').innerText = `Warga: ${nama}`;
                 
                 const item = this.state.dataRumah.find(d => d.id == id);
+                const nama = item ? item.nama_pemilik : 'Tidak diketahui';
+                document.getElementById('bantuan-nama-warga').innerText = `Warga: ${nama}`;
+                
                 if(item && item.jenis_bantuan) { 
                     document.getElementById('bantuan-jenis').value = item.jenis_bantuan; 
                     document.getElementById('bantuan-no-sk').value = item.no_sk_bantuan || '';
