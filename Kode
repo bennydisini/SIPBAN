@@ -6,7 +6,8 @@ const SHEET_NAMES = {
   DATA_BANTUAN: 'data_bantuan',
   LOG_PERBAIKAN: 'log_perbaikan',
   SETTINGS: 'settings',
-  DATA_GANDA: 'data_ganda'
+  DATA_GANDA: 'data_ganda',
+  DATA_DINAS: 'data_dinas'
 };
 
 // ==========================================
@@ -40,6 +41,7 @@ function setupDatabase() {
   createSheetIfNotExists(ss, SHEET_NAMES.DATA_BANTUAN, ['id_laporan', 'jenis_bantuan', 'no_sk', 'keterangan', 'updated_at']);
   createSheetIfNotExists(ss, SHEET_NAMES.LOG_PERBAIKAN, ['id_laporan', 'field', 'old_value', 'new_value', 'admin_user', 'timestamp']);
   createSheetIfNotExists(ss, SHEET_NAMES.DATA_GANDA, ['ID Laporan', 'Nama Pemilik', 'NIK', 'No KK', 'Desa', 'Keterangan Ganda', 'Status', 'Fase BNBA', 'Terakhir Dicek']);
+  createSheetIfNotExists(ss, SHEET_NAMES.DATA_DINAS, ['id', 'petugas_username', 'nama_penghuni', 'nik', 'no_kk', 'nama_instansi', 'dusun', 'desa', 'kecamatan', 'created_at']);
   
   let folders = DriveApp.getFoldersByName(FOLDER_NAME_FOTO);
   if (!folders.hasNext()) { DriveApp.createFolder(FOLDER_NAME_FOTO); }
@@ -89,10 +91,12 @@ function doPost(e) {
       case 'importData': result = handleImportData(payload); break;
       case 'getDuplicatesData': result = handleGetDuplicatesData(); break;
       case 'syncDuplicatesToSheet': result = handleSyncDuplicatesToSheet(); break;
+      case 'getDinas': result = handleGetDinas(payload); break;
+      case 'saveDinas': result = handleSaveDinas(payload); break;
+      case 'deleteDinas': result = handleDeleteDinas(payload); break;
       default: throw new Error("Aksi tidak valid");
     }
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
-    
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({status: 'error', message: error.message})).setMimeType(ContentService.MimeType.JSON);
   }
@@ -501,11 +505,61 @@ function handleSyncDuplicatesToSheet(p) {
    
    sheet.getRange(2, 1, Math.max(sheet.getMaxRows(), 2), sheet.getMaxColumns()).clearContent();
    
-   if(duplicates.length > 0) {
+     if(duplicates.length > 0) {
        let rows = duplicates.map(d => [
            d.id, d.nama_pemilik, `'${d.nik}`, `'${d.no_kk}`, d.desa, d.keterangan_ganda, d.status, d.fase_bnba, new Date().toISOString()
        ]);
        sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
    }
    return { status: 'success', count: duplicates.length };
+}
+
+// ==========================================
+// API RUMAH DINAS (MENU BARU)
+// ==========================================
+function handleGetDinas(p) {
+  const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_DINAS).getDataRange().getValues();
+  let result = [];
+  for (let i = 1; i < data.length; i++) {
+    let item = {
+      id: data[i][0], petugas_username: data[i][1], nama_penghuni: data[i][2], nik: data[i][3], no_kk: data[i][4],
+      nama_instansi: data[i][5], dusun: data[i][6], desa: data[i][7], kecamatan: data[i][8], created_at: data[i][9]
+    };
+    // Petugas kampung hanya lihat data yang diinputnya, admin/kecamatan bisa lihat semua
+    if (p.role === 'petugas' && item.petugas_username !== p.username) continue;
+    result.push(item);
+  }
+  return { status: 'success', data: result.reverse() };
+}
+
+function handleSaveDinas(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_DINAS);
+  const d = p.data;
+  
+  if (p.id) {
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == p.id) {
+        sheet.getRange(i + 1, 3, 1, 7).setValues([[d.nama_penghuni, d.nik, d.no_kk, d.nama_instansi, d.dusun, d.desa, d.kecamatan]]);
+        return { status: 'success' };
+      }
+    }
+    throw new Error("Data tidak ditemukan");
+  } else {
+    const newId = Date.now().toString();
+    sheet.appendRow([newId, p.username, d.nama_penghuni, d.nik, d.no_kk, d.nama_instansi, d.dusun, d.desa, d.kecamatan, new Date().toISOString()]);
+    return { status: 'success' };
+  }
+}
+
+function handleDeleteDinas(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_DINAS);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == p.id) {
+      sheet.deleteRow(i + 1);
+      return { status: 'success' };
+    }
+  }
+  throw new Error("Gagal menghapus");
 }
