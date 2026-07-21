@@ -5,11 +5,12 @@ const SHEET_NAMES = {
   DATA_RUMAH: 'data_rumah',
   DATA_BANTUAN: 'data_bantuan',
   LOG_PERBAIKAN: 'log_perbaikan',
-  SETTINGS: 'settings'
+  SETTINGS: 'settings',
+  DATA_GANDA: 'data_ganda'
 };
 
 // ==========================================
-// SETUP DATABASE
+// 1. SETUP DATABASE
 // ==========================================
 function setupDatabase() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -23,7 +24,6 @@ function setupDatabase() {
     usersSheet.appendRow([Date.now().toString()+3, 'kecamatan', 'kecamatan123', 'petugas_kecamatan', new Date().toISOString()]);
   }
 
-  // Setup Tabel Settings
   createSheetIfNotExists(ss, SHEET_NAMES.SETTINGS, ['key', 'value']);
   const settingsSheet = ss.getSheetByName(SHEET_NAMES.SETTINGS);
   if (settingsSheet.getLastRow() <= 1) {
@@ -31,20 +31,20 @@ function setupDatabase() {
     settingsSheet.appendRow(['phase_status', 'open']);
   }
   
-  // Penempatan fase_bnba diletakkan di indeks ke-20 (ujung) agar tidak mengganggu data lama
   createSheetIfNotExists(ss, SHEET_NAMES.DATA_RUMAH, [
     'id', 'petugas_username', 'surveyor_username', 'nama_pemilik', 'nik', 'no_kk', 
     'dusun', 'desa', 'kecamatan', 'koordinat', 'tingkat_kerusakan', 'kebutuhan_mendesak', 
-    'foto_1', 'foto_2', 'foto_3', 'foto_4', 'foto_5', 'foto_6', 'status', 'created_at', 'fase_bnba'
+    'foto_1', 'foto_2', 'foto_3', 'foto_4', 'foto_5', 'foto_6', 'status', 'created_at', 'fase_bnba', 'catatan_tolak'
   ]);
   
-  createSheetIfNotExists(ss, SHEET_NAMES.DATA_BANTUAN, ['id_laporan', 'jenis_bantuan', 'keterangan', 'updated_at']);
+  createSheetIfNotExists(ss, SHEET_NAMES.DATA_BANTUAN, ['id_laporan', 'jenis_bantuan', 'no_sk', 'keterangan', 'updated_at']);
   createSheetIfNotExists(ss, SHEET_NAMES.LOG_PERBAIKAN, ['id_laporan', 'field', 'old_value', 'new_value', 'admin_user', 'timestamp']);
+  createSheetIfNotExists(ss, SHEET_NAMES.DATA_GANDA, ['ID Laporan', 'Nama Pemilik', 'NIK', 'No KK', 'Desa', 'Keterangan Ganda', 'Status', 'Fase BNBA', 'Terakhir Dicek']);
   
   let folders = DriveApp.getFoldersByName(FOLDER_NAME_FOTO);
   if (!folders.hasNext()) { DriveApp.createFolder(FOLDER_NAME_FOTO); }
 
-  Logger.log('✅ Database v4.1 (Fitur BNBA) Ter-setup!');
+  Logger.log('✅ Database Ter-setup!');
 }
 
 function createSheetIfNotExists(ss, name, headers) {
@@ -56,7 +56,12 @@ function createSheetIfNotExists(ss, name, headers) {
   return sheet;
 }
 
-function doGet(e) { return ContentService.createTextOutput("Backend SIPBAN Aktif").setMimeType(ContentService.MimeType.TEXT); }
+// ==========================================
+// 2. ROUTER WEB APP
+// ==========================================
+function doGet(e) { 
+  return ContentService.createTextOutput("Backend SIPBAN Aktif").setMimeType(ContentService.MimeType.TEXT); 
+}
 
 function doPost(e) {
   try {
@@ -70,6 +75,7 @@ function doPost(e) {
       case 'getConfig': result = handleGetConfig(); break;
       case 'updateConfig': result = handleUpdateConfig(payload); break;
       case 'getPublicStats': result = handleGetPublicStats(); break;
+      case 'checkDataWarga': result = handleCheckDataWarga(payload); break;
       case 'getData': result = handleGetData(payload); break;
       case 'createLaporan': result = handleCreateLaporan(payload); break;
       case 'submitSurvey': result = handleSubmitSurvey(payload); break;
@@ -80,17 +86,20 @@ function doPost(e) {
       case 'getUsers': result = handleGetUsers(); break;
       case 'createUser': result = handleCreateUser(payload); break;
       case 'deleteUser': result = handleDeleteUser(payload); break;
+      case 'importData': result = handleImportData(payload); break;
+      case 'getDuplicatesData': result = handleGetDuplicatesData(); break;
+      case 'syncDuplicatesToSheet': result = handleSyncDuplicatesToSheet(); break;
       default: throw new Error("Aksi tidak valid");
     }
-
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({status: 'error', message: error.message})).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 // ==========================================
-// HANDLERS
+// 3. AUTENTIKASI & KONFIGURASI
 // ==========================================
 function handleLogin(p) {
   const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.USERS).getDataRange().getValues();
@@ -111,8 +120,8 @@ function fetchConfigData() {
   return conf;
 }
 
-function handleGetConfig() {
-  return { status: 'success', data: fetchConfigData() };
+function handleGetConfig() { 
+  return { status: 'success', data: fetchConfigData() }; 
 }
 
 function handleUpdateConfig(p) {
@@ -125,41 +134,134 @@ function handleUpdateConfig(p) {
   return { status: 'success' };
 }
 
+// ==========================================
+// 4. API PUBLIK (STATISTIK & CARI WARGA)
+// ==========================================
 function handleGetPublicStats() {
   const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH).getDataRange().getValues();
-  let total = data.length - 1, berat = 0, sedang = 0, ringan = 0, verified = 0;
+  let total = 0, berat = 0, sedang = 0, ringan = 0, verified = 0;
+  let villages = {}; 
+
   for(let i=1; i<data.length; i++) {
-    if(data[i][10] === 'Rusak Berat') berat++;
-    if(data[i][10] === 'Rusak Sedang') sedang++;
-    if(data[i][10] === 'Rusak Ringan') ringan++;
-    if(data[i][18] === 'Terverifikasi') verified++;
+    const desa = data[i][7];
+    const rusak = data[i][10];
+    const status = data[i][18];
+    
+    if(!desa) continue;
+    
+    total++;
+    if(rusak === 'Rusak Berat') berat++;
+    if(rusak === 'Rusak Sedang') sedang++;
+    if(rusak === 'Rusak Ringan') ringan++;
+    if(status === 'Terverifikasi') verified++;
+
+    if(!villages[desa]) villages[desa] = { total: 0, berat: 0, sedang: 0, ringan: 0 };
+    villages[desa].total++;
+    if(rusak === 'Rusak Berat') villages[desa].berat++;
+    if(rusak === 'Rusak Sedang') villages[desa].sedang++;
+    if(rusak === 'Rusak Ringan') villages[desa].ringan++;
   }
-  return { status: 'success', data: { total, berat, sedang, ringan, verified } };
+  return { status: 'success', data: { total, berat, sedang, ringan, verified, villages } };
 }
 
+function handleCheckDataWarga(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DATA_RUMAH);
+  
+  const keyword = p.keyword ? p.keyword.toString().trim() : '';
+  if(keyword.length < 5) throw new Error("Nomor NIK/KK tidak valid (terlalu pendek).");
+
+  // OPTIMASI: TextFinder untuk performa cepat tanpa load seluruh data ke memory
+  const textFinder = sheet.createTextFinder(keyword).matchEntireCell(true);
+  const searchResults = textFinder.findAll();
+
+  if (searchResults.length === 0) {
+     throw new Error("Data dengan NIK/KK tersebut belum terdaftar di sistem kami.");
+  }
+
+  const bantuanSheet = ss.getSheetByName(SHEET_NAMES.DATA_BANTUAN);
+  let bantuanMap = {};
+  
+  if (bantuanSheet) {
+    const bData = bantuanSheet.getDataRange().getValues();
+    for (let i = 1; i < bData.length; i++) {
+      bantuanMap[bData[i][0]] = bData[i][1];
+    }
+  }
+
+  let hasilPencarian = [];
+  let processedRows = {};
+  const maxCol = sheet.getLastColumn();
+
+  for (let i = 0; i < searchResults.length; i++) {
+    const row = searchResults[i].getRow();
+    if (row === 1) continue; // Abaikan header
+    
+    if (processedRows[row]) continue;
+    processedRows[row] = true;
+    
+    const rowData = sheet.getRange(row, 1, 1, maxCol).getValues()[0];
+    const idLaporan = rowData[0];
+    const nik = rowData[4] ? rowData[4].toString().trim() : '';
+    const kk = rowData[5] ? rowData[5].toString().trim() : '';
+    
+    if (nik !== keyword && kk !== keyword) continue;
+
+    let namaAsli = rowData[3] ? rowData[3].toString() : '';
+    let namaMasked = namaAsli.substring(0,2) + "*** " + (namaAsli.split(' ').length > 1 ? namaAsli.split(' ').pop().substring(0,1) + "." : "");
+    
+    let item = {
+      id: idLaporan,
+      nama: namaMasked,
+      desa: `Desa ${rowData[7]}, Kec. ${rowData[8]}`,
+      status: rowData[18],
+      catatan_tolak: rowData[21] || '',
+      nik: nik.length > 4 ? "******" + nik.substring(nik.length - 4) : nik,
+      kk: kk.length > 4 ? "******" + kk.substring(kk.length - 4) : kk
+    };
+    
+    if (bantuanMap[idLaporan] && bantuanMap[idLaporan] !== 'Belum Ada') {
+      item.bantuan = bantuanMap[idLaporan];
+    }
+    
+    hasilPencarian.push(item);
+  }
+
+  if (hasilPencarian.length === 0) {
+     throw new Error("Data dengan NIK/KK tersebut belum terdaftar di sistem kami.");
+  }
+
+  return { status: 'success', data: hasilPencarian };
+}
+
+// ==========================================
+// 5. DASHBOARD & MANAJEMEN DATA
+// ==========================================
 function handleGetData(p) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const data = ss.getSheetByName(SHEET_NAMES.DATA_RUMAH).getDataRange().getValues();
   const bantuanData = ss.getSheetByName(SHEET_NAMES.DATA_BANTUAN).getDataRange().getValues();
   
   let mapBantuan = {};
-  for(let i=1; i<bantuanData.length; i++) { mapBantuan[bantuanData[i][0]] = { jenis: bantuanData[i][1], ket: bantuanData[i][2] }; }
+  for(let i=1; i<bantuanData.length; i++) { 
+    mapBantuan[bantuanData[i][0]] = { 
+      jenis: bantuanData[i][1], 
+      no_sk: bantuanData[i][2], 
+      ket: bantuanData[i][3] 
+    }; 
+  }
 
   let result = [];
   for (let i = 1; i < data.length; i++) {
     let item = {
-      id: data[i][0],
-      petugas_username: data[i][1],
-      surveyor_username: data[i][2],
+      id: data[i][0], petugas_username: data[i][1], surveyor_username: data[i][2],
       nama_pemilik: data[i][3], nik: data[i][4], no_kk: data[i][5],
       dusun: data[i][6], desa: data[i][7], kecamatan: data[i][8],
       koordinat: data[i][9], tingkat_kerusakan: data[i][10], kebutuhan_mendesak: data[i][11],
-      foto_1: data[i][12], foto_2: data[i][13], foto_3: data[i][14],
-      foto_4: data[i][15], foto_5: data[i][16], foto_6: data[i][17],
-      status: data[i][18],
-      created_at: data[i][19],
-      fase_bnba: data[i][20] || 'Tidak Terdefinisi', // Fallback untuk data lama
+      foto_1: data[i][12], foto_2: data[i][13], foto_3: data[i][14], foto_4: data[i][15], foto_5: data[i][16], foto_6: data[i][17],
+      status: data[i][18], created_at: data[i][19], fase_bnba: data[i][20] || '-', catatan_tolak: data[i][21] || '',
       jenis_bantuan: mapBantuan[data[i][0]]?.jenis || null,
+      no_sk_bantuan: mapBantuan[data[i][0]]?.no_sk || null,
       keterangan_bantuan: mapBantuan[data[i][0]]?.ket || null
     };
 
@@ -188,17 +290,15 @@ function uploadFotosToDrive(fotosArray, rowId) {
 
 function handleCreateLaporan(p) {
   const conf = fetchConfigData();
-  // Validasi Pencegahan Input saat Fase Ditutup (Admin boleh by-pass jika dibutuhkan, tapi untuk skenario ini kita block semua agar disiplin data)
-  if(conf.status !== 'open' && p.role === 'petugas') throw new Error("Fase Pendataan BNBA sedang ditutup.");
+  if(conf.status !== 'open' && p.role === 'petugas') throw new Error("Fase Pendataan sedang ditutup.");
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH);
   const newId = Date.now().toString();
   const d = p.identitas;
   
-  // Note: Parameter ke-21 adalah fase_bnba (indeks array ke-20)
   sheet.appendRow([
     newId, p.username, '', d.nama, d.nik, d.kk, d.dusun, d.desa, d.kec, 
-    '', '', '', '', '', '', '', '', '', 'Menunggu Survey', new Date().toISOString(), conf.phase
+    '', '', '', '', '', '', '', '', '', 'Menunggu Survey', new Date().toISOString(), conf.phase, ''
   ]);
   return { status: 'success' };
 }
@@ -251,9 +351,13 @@ function handleEditLaporan(p) {
         }
       }
       
-      if(p.status) sheet.getRange(i+1, 19).setValue(p.status);
+      if(p.status) {
+        sheet.getRange(i+1, 19).setValue(p.status);
+        // Pastikan Catatan Tolak Masuk ke Kolom 22 (Index 21)
+        sheet.getRange(i+1, 22).setValue(p.catatan_tolak || ''); 
+      }
+
       logsToAppend.forEach(log => logSheet.appendRow(log));
-      
       return { status: 'success' };
     }
   }
@@ -272,25 +376,46 @@ function handleDeleteLaporan(p) {
   throw new Error("Gagal menghapus");
 }
 
+function handleImportData(p) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_RUMAH);
+  const records = p.data;
+  if(!records || records.length === 0) throw new Error("Data kosong");
+  
+  const rowsToAppend = [];
+  const now = new Date().toISOString();
+  
+  records.forEach((d, index) => {
+    const newId = (Date.now() + index).toString(); 
+    rowsToAppend.push([
+      newId, p.username, '', d.nama, d.nik, d.kk, d.dusun, d.desa, d.kecamatan, 
+      '', '', '', '', '', '', '', '', '', 'Menunggu Survey', now, d.fase, ''
+    ]);
+  });
+  
+  sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
+  return { status: 'success', count: rowsToAppend.length };
+}
+
+// ==========================================
+// 6. BANTUAN & MANAJEMEN PENGGUNA
+// ==========================================
 function handleSubmitBantuan(p) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.DATA_BANTUAN);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == p.id_laporan) {
-      sheet.getRange(i+1, 2, 1, 3).setValues([[p.jenis, p.keterangan, new Date().toISOString()]]);
+      sheet.getRange(i+1, 2, 1, 4).setValues([[p.jenis, p.no_sk, p.keterangan, new Date().toISOString()]]);
       return { status: 'success' };
     }
   }
-  sheet.appendRow([p.id_laporan, p.jenis, p.keterangan, new Date().toISOString()]);
+  sheet.appendRow([p.id_laporan, p.jenis, p.no_sk, p.keterangan, new Date().toISOString()]);
   return { status: 'success' };
 }
 
 function handleGetLogPerbaikan(p) {
   const data = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.LOG_PERBAIKAN).getDataRange().getValues();
   let result = [];
-  for(let i=1; i<data.length; i++){
-    if(data[i][0] == p.id_laporan) result.push({ field: data[i][1], old_value: data[i][2], new_value: data[i][3], admin_user: data[i][4], timestamp: data[i][5] });
-  }
+  for(let i=1; i<data.length; i++){ if(data[i][0] == p.id_laporan) result.push({ field: data[i][1], old_value: data[i][2], new_value: data[i][3], admin_user: data[i][4], timestamp: data[i][5] }); }
   return { status: 'success', data: result.reverse() };
 }
 
@@ -314,10 +439,73 @@ function handleDeleteUser(p) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.USERS);
   const data = sheet.getDataRange().getValues();
   for(let i=1; i<data.length; i++) {
-    if(data[i][1] === p.username) {
-      sheet.deleteRow(i+1);
-      return { status: 'success' };
-    }
+    if(data[i][1] === p.username) { sheet.deleteRow(i+1); return { status: 'success' }; }
   }
   throw new Error("User tidak ditemukan");
+}
+
+// ==========================================
+// 7. MANAJEMEN DATA GANDA
+// ==========================================
+function handleGetDuplicatesData(p) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = ss.getSheetByName(SHEET_NAMES.DATA_RUMAH).getDataRange().getValues();
+  const bantuanData = ss.getSheetByName(SHEET_NAMES.DATA_BANTUAN).getDataRange().getValues();
+  
+  let mapBantuan = {};
+  for(let i=1; i<bantuanData.length; i++) { 
+    mapBantuan[bantuanData[i][0]] = { jenis: bantuanData[i][1], no_sk: bantuanData[i][2], ket: bantuanData[i][3] }; 
+  }
+
+  let nikCounts = {};
+  let kkCounts = {};
+  
+  for (let i = 1; i < data.length; i++) {
+    let nik = data[i][4] ? data[i][4].toString().trim() : '';
+    let kk = data[i][5] ? data[i][5].toString().trim() : '';
+    if (nik) nikCounts[nik] = (nikCounts[nik] || 0) + 1;
+    if (kk) kkCounts[kk] = (kkCounts[kk] || 0) + 1;
+  }
+  
+  let result = [];
+  for (let i = 1; i < data.length; i++) {
+    let nik = data[i][4] ? data[i][4].toString().trim() : '';
+    let kk = data[i][5] ? data[i][5].toString().trim() : '';
+    
+    if ((nik && nikCounts[nik] > 1) || (kk && kkCounts[kk] > 1)) {
+      let item = {
+        id: data[i][0], petugas_username: data[i][1], surveyor_username: data[i][2],
+        nama_pemilik: data[i][3], nik: nik, no_kk: kk,
+        dusun: data[i][6], desa: data[i][7], kecamatan: data[i][8],
+        koordinat: data[i][9], tingkat_kerusakan: data[i][10], kebutuhan_mendesak: data[i][11],
+        foto_1: data[i][12], foto_2: data[i][13], foto_3: data[i][14], foto_4: data[i][15], foto_5: data[i][16], foto_6: data[i][17],
+        status: data[i][18], created_at: data[i][19], fase_bnba: data[i][20] || '-',
+        catatan_tolak: data[i][21] || '',
+        jenis_bantuan: mapBantuan[data[i][0]]?.jenis || null,
+        no_sk_bantuan: mapBantuan[data[i][0]]?.no_sk || null,
+        keterangan_bantuan: mapBantuan[data[i][0]]?.ket || null,
+        keterangan_ganda: (nikCounts[nik] > 1 ? '⚠️ NIK Ganda ' : '') + (kkCounts[kk] > 1 ? '⚠️ KK Ganda' : '')
+      };
+      result.push(item);
+    }
+  }
+  
+  result.sort((a, b) => (a.nik || '').localeCompare(b.nik || ''));
+  return { status: 'success', data: result };
+}
+
+function handleSyncDuplicatesToSheet(p) {
+   const duplicates = handleGetDuplicatesData(p).data;
+   const ss = SpreadsheetApp.getActiveSpreadsheet();
+   let sheet = ss.getSheetByName(SHEET_NAMES.DATA_GANDA);
+   
+   sheet.getRange(2, 1, Math.max(sheet.getMaxRows(), 2), sheet.getMaxColumns()).clearContent();
+   
+   if(duplicates.length > 0) {
+       let rows = duplicates.map(d => [
+           d.id, d.nama_pemilik, `'${d.nik}`, `'${d.no_kk}`, d.desa, d.keterangan_ganda, d.status, d.fase_bnba, new Date().toISOString()
+       ]);
+       sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+   }
+   return { status: 'success', count: duplicates.length };
 }
