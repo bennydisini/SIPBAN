@@ -789,6 +789,7 @@
                 }
             },
 
+<!--
             async fetchPublicStats() {
                 try {
                     const res = await this.gasFetch('getPublicStats');
@@ -836,6 +837,68 @@
                                     <div class="text-red-600 dark:text-red-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span> Berat: ${stats.berat}</div>
                                     <div class="text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm"></span> Sedang: ${stats.sedang}</div>
                                     <div class="text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm"></span> Ringan: ${stats.ringan}</div>
+                                </div>
+                            </div>`;
+                        }
+                        
+                        const emptyState = '<div class="p-6 text-center text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800"><i class="ph-duotone ph-chart-bar text-4xl mb-2 opacity-50"></i><p class="text-sm">Data statistik kampung belum tersedia.</p></div>';
+                        document.getElementById('village-stats-container').innerHTML = html || emptyState;
+                    }
+                } catch(e) {}
+            },
+-->
+            async fetchPublicStats() {
+                try {
+                    const res = await this.gasFetch('getPublicStats');
+                    if(res.status === 'success') {
+                        // Animasi Angka
+                        this.animateValue('stat-total', 0, res.data.total, 1000);
+                        this.animateValue('stat-proses', 0, res.data.proses, 1000);
+                        this.animateValue('stat-verified', 0, res.data.verified, 1000);
+                        this.animateValue('stat-ditolak', 0, res.data.ditolak, 1000);
+
+                        this.animateValue('stat-berat', 0, res.data.berat, 1000);
+                        this.animateValue('stat-sedang', 0, res.data.sedang, 1000);
+                        this.animateValue('stat-ringan', 0, res.data.ringan, 1000);
+                        
+                        this.renderChart(res.data);
+                        
+                        // Urutkan desa berdasarkan Abjad (Ascending / A-Z)
+                        const sortedVillages = Object.entries(res.data.villages).sort((a, b) => a[0].localeCompare(b[0]));
+
+                        let html = '';
+                        for(const [desa, stats] of sortedVillages) {
+                            // Hitung persentase untuk visual bar chart
+                            const pBerat = stats.total ? (stats.berat / stats.total) * 100 : 0;
+                            const pSedang = stats.total ? (stats.sedang / stats.total) * 100 : 0;
+                            const pRingan = stats.total ? (stats.ringan / stats.total) * 100 : 0;
+
+                            html += `
+                            <div class="bg-white dark:bg-darkcard border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm hover:shadow-md transition group mb-3">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-primary transition flex items-center gap-2"><i class="ph-fill ph-map-pin text-primary/50"></i> Desa ${desa}</h4>
+                                    <span class="bg-blue-50 dark:bg-blue-900/30 text-primary px-2.5 py-1 rounded-lg text-xs font-black">${stats.total} Laporan</span>
+                                </div>
+                                
+                                <!-- Visual Bar Kerusakan Horizontal -->
+                                <div class="w-full flex h-2.5 rounded-full overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800 shadow-inner">
+                                    <div style="width: ${pBerat}%" class="bg-red-500 hover:opacity-80 transition" title="Berat: ${stats.berat}"></div>
+                                    <div style="width: ${pSedang}%" class="bg-orange-500 hover:opacity-80 transition" title="Sedang: ${stats.sedang}"></div>
+                                    <div style="width: ${pRingan}%" class="bg-blue-500 hover:opacity-80 transition" title="Ringan: ${stats.ringan}"></div>
+                                </div>
+                                
+                                <!-- Keterangan Legend Bawah (Kerusakan) -->
+                                <div class="flex justify-between text-[10px] font-semibold mt-2 pb-2 border-b border-slate-50 dark:border-slate-800">
+                                    <div class="text-red-600 dark:text-red-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span> Berat: ${stats.berat}</div>
+                                    <div class="text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm"></span> Sedang: ${stats.sedang}</div>
+                                    <div class="text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm"></span> Ringan: ${stats.ringan}</div>
+                                </div>
+                                
+                                <!-- BARU: Keterangan Status Laporan -->
+                                <div class="flex justify-between text-[10px] font-semibold mt-2 pt-1">
+                                    <div class="text-blue-500 flex items-center gap-1" title="Masih diproses/Menunggu survey"><i class="ph-bold ph-spinner-gap"></i> Proses: ${stats.proses || 0}</div>
+                                    <div class="text-emerald-500 flex items-center gap-1" title="Sudah diverifikasi"><i class="ph-bold ph-check-circle"></i> Valid: ${stats.verified || 0}</div>
+                                    <div class="text-red-500 flex items-center gap-1" title="Ditolak/Tidak valid"><i class="ph-bold ph-x-circle"></i> Ditolak: ${stats.ditolak || 0}</div>
                                 </div>
                             </div>`;
                         }
