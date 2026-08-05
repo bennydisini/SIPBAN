@@ -33,6 +33,7 @@
             font-family: 'Inter', sans-serif; 
             transition: background-color 0.3s, color 0.3s; 
             padding-bottom: 80px; 
+            -webkit-tap-highlight-color: transparent;
         }
         .hidden { display: none !important; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
@@ -48,7 +49,6 @@
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
         
-        /* Animasi PopUp untuk Loader Baru */
         @keyframes popUp {
             0% { transform: scale(0.9); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
@@ -59,43 +59,31 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
         .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+
+        /* Custom Safe Area Padding for Bottom Nav Mobile */
+        .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-darkbg dark:text-slate-100 min-h-screen flex flex-col relative overflow-x-hidden">
 
     <script>
-        // ==========================================
-        // CONFIGURATION & DATABASE CONNECTION
-        // ==========================================
-        const IS_PREVIEW = false; // Pastikan ini 'false' agar terhubung ke server
-        // PASTE URL WEB APP ANDA DI BAWAH INI:
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxRq4Y5yN9wiut97kuKzl5cuGVpizfuCftdpEMJF0t99JsgMOhTJFqXz8Z4rC_KdHN0Pw/exec";
+        const IS_PREVIEW = false; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxHCcYZI91N8nfE2V8UCrqWc5FlhwtF_HTWD969psgBHDfis5LFHaJKYxTQkXfxGPnL4Q/exec";
     </script>
 
-    <!-- Fullscreen Loading Overlay (Desain Baru Keren & Modern) -->
+    <!-- Fullscreen Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 z-[999] hidden flex-col items-center justify-center backdrop-blur-md transition-opacity duration-300">
         <div class="bg-white/95 dark:bg-darkcard/95 backdrop-blur-xl p-8 sm:px-12 rounded-[2.5rem] shadow-[0_10px_40px_rgba(30,64,175,0.2)] dark:shadow-[0_10px_50px_rgba(0,0,0,0.5)] border border-white/50 dark:border-slate-700/50 flex flex-col items-center relative overflow-hidden animate-[popUp_0.3s_ease-out_forwards]">
-            
-            <!-- Ambient Glow Effects (Cahaya Latar) -->
             <div class="absolute -top-12 -left-12 w-32 h-32 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
             <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-secondary/20 rounded-full blur-2xl animate-pulse" style="animation-delay: 1s;"></div>
-
-            <!-- Modern Spinner Container -->
             <div class="relative w-24 h-24 flex justify-center items-center mb-6 mt-2">
-                <!-- Track Belakang -->
                 <div class="absolute inset-0 rounded-full border-4 border-slate-100 dark:border-slate-800/80"></div>
-                <!-- Cincin Luar (Putar Kanan) -->
                 <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-secondary animate-spin"></div>
-                <!-- Cincin Dalam (Putar Kiri / Reverse) -->
                 <div class="absolute inset-2 rounded-full border-4 border-transparent border-l-secondary border-b-primary animate-[spin_1.5s_linear_infinite_reverse]"></div>
-                
-                <!-- Center Logo/Icon -->
                 <div class="relative z-10 w-11 h-11 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/40 transform rotate-45 animate-pulse">
                     <i class="ph-bold ph-database text-white text-xl transform -rotate-45"></i>
                 </div>
             </div>
-
-            <!-- Text Content -->
             <h3 class="text-xl font-black text-slate-800 dark:text-white mb-1.5 tracking-tight relative z-10">Sinkronisasi Data</h3>
             <div class="flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 relative z-10">
                 <span>Mohon tunggu sebentar</span>
@@ -111,7 +99,6 @@
     <!-- Toast & Confirm Modal -->
     <div id="toast-container" class="fixed top-20 right-4 left-4 sm:left-auto sm:w-96 z-[900] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Custom Confirm Modal -->
     <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 hidden z-[1000] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white dark:bg-darkcard w-full max-w-sm rounded-3xl p-5 md:p-6 shadow-2xl fade-in text-center">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -135,7 +122,7 @@
                 </div>
                 <div>
                     <span class="block font-black text-lg tracking-tight uppercase leading-none">SIPBAN</span>
-                    <span class="block text-[9px] font-bold text-slate-500 tracking-widest uppercase mt-0.5">Kecamatan Karang Baru</span>
+                    <span class="block text-[9px] font-bold text-slate-500 tracking-widest uppercase mt-0.5">Kec. Karang Baru</span>
                 </div>
             </div>
             <button onclick="app.toggleDarkMode()" class="text-slate-500 hover:text-primary transition p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
@@ -147,7 +134,6 @@
     <main class="flex-grow container mx-auto px-4 py-6">
         <!-- 1. LANDING PAGE -->
         <section id="page-landing" class="fade-in space-y-10">
-            <!-- Hero Section -->
             <div class="text-center py-8 md:py-16 max-w-3xl mx-auto">
                 <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-primary font-semibold text-xs mb-4 border border-blue-100">
                     <span class="relative flex h-2.5 w-2.5">
@@ -169,7 +155,6 @@
                     <input type="text" id="cek-input" required placeholder="Ketik NIK atau No. KK..." class="flex-grow p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none font-semibold">
                     <button type="submit" class="bg-primary text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg whitespace-nowrap">Cari Data</button>
                 </form>
-                <!-- Hasil Pencarian Warga -->
                 <div id="cek-result" class="hidden mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 fade-in relative z-10"></div>
             </div>
 
@@ -177,34 +162,6 @@
             <div class="bg-white dark:bg-darkcard rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100 dark:border-slate-800">
                 <h2 class="text-2xl font-black text-center mb-6">Statistik Kerusakan Terkini</h2>
                 
-                <!-- Grid Ringkasan -->
-                <!-- dibatalkan -->
-                <!--
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                    <div class="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 text-center flex flex-col items-center justify-center">
-                        <p class="text-slate-500 text-xs font-bold mb-1 uppercase tracking-wider">Total Data</p>
-                        <h4 id="stat-total" class="text-3xl font-black text-primary">0</h4>
-                    </div>
-                    <div class="bg-red-50 dark:bg-red-900/20 p-4 md:p-6 rounded-2xl border border-red-100 dark:border-red-900/30 text-center flex flex-col items-center justify-center">
-                        <p class="text-slate-500 dark:text-red-400 text-xs font-bold mb-1 uppercase tracking-wider">Rusak Berat</p>
-                        <h4 id="stat-berat" class="text-3xl font-black text-red-600 dark:text-red-400">0</h4>
-                    </div>
-                    <div class="bg-orange-50 dark:bg-orange-900/20 p-4 md:p-6 rounded-2xl border border-orange-100 dark:border-orange-900/30 text-center flex flex-col items-center justify-center">
-                        <p class="text-slate-500 dark:text-orange-400 text-xs font-bold mb-1 uppercase tracking-wider">Rusak Sedang</p>
-                        <h4 id="stat-sedang" class="text-3xl font-black text-orange-600 dark:text-orange-400">0</h4>
-                    </div>
-                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 md:p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30 text-center flex flex-col items-center justify-center">
-                        <p class="text-slate-500 dark:text-blue-400 text-xs font-bold mb-1 uppercase tracking-wider">Rusak Ringan</p>
-                        <h4 id="stat-ringan" class="text-3xl font-black text-blue-600 dark:text-blue-400">0</h4>
-                    </div>
-                    <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 md:p-6 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-center flex flex-col items-center justify-center col-span-2 md:col-span-1">
-                        <p class="text-slate-500 dark:text-emerald-400 text-xs font-bold mb-1 uppercase tracking-wider">Terverifikasi</p>
-                        <h4 id="stat-verified" class="text-3xl font-black text-emerald-600 dark:text-emerald-400">0</h4>
-                    </div>
-                </div>
-                -->
-
-                <!-- Grid Ringkasan Status Verifikasi -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 text-center flex flex-col items-center justify-center">
                         <p class="text-slate-500 text-[10px] sm:text-xs font-bold mb-1 uppercase tracking-wider">Total Laporan</p>
@@ -226,7 +183,6 @@
 
                 <div class="w-full h-px bg-slate-100 dark:bg-slate-800 mb-6"></div>
 
-                <!-- Grid Ringkasan Tingkat Kerusakan -->
                 <div class="grid grid-cols-3 gap-4 mb-8">
                     <div class="bg-red-50 dark:bg-red-900/20 p-4 md:p-5 rounded-2xl border border-red-100 dark:border-red-900/30 text-center flex flex-col items-center justify-center">
                         <p class="text-slate-500 dark:text-red-400 text-[10px] sm:text-xs font-bold mb-1 uppercase tracking-wider">Rsk Berat</p>
@@ -242,15 +198,13 @@
                     </div>
                 </div>
 
-                <!-- Area Grafik & Data Per Kampung -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div class="h-64 flex justify-center items-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
                         <canvas id="publicChart"></canvas>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="ph-fill ph-map-pin text-primary"></i> Laporan Per Kampung / Desa</h3>
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="ph-fill ph-map-pin text-primary"></i> Laporan Per Kampung</h3>
                         <div id="village-stats-container" class="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                            <!-- Data desa dimuat disini -->
                         </div>
                     </div>
                 </div>
@@ -287,7 +241,6 @@
                     <p id="dashboard-role" class="text-blue-200 text-xs md:text-sm font-medium flex items-center justify-center md:justify-start gap-2"></p>
                 </div>
                 <div id="dashboard-actions" class="flex flex-wrap justify-center gap-3 w-full md:w-auto"></div>
-                <!-- Hidden File Input untuk Import Excel -->
                 <input type="file" id="import-excel-file" class="hidden" accept=".xlsx, .xls, .csv" onchange="app.handleImportExcel(event)">
             </div>
 
@@ -316,6 +269,9 @@
                 <div class="p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col xl:flex-row justify-between items-center gap-4">
                     <h3 class="font-bold text-lg whitespace-nowrap">Basis Data Kerusakan</h3>
                     <div class="flex flex-wrap gap-3 w-full xl:w-auto justify-end">
+                        <select id="filter-fase" onchange="app.filterTable()" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">Semua Fase</option>
+                        </select>
                         <select id="filter-bantuan" onchange="app.filterTable()" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary">
                             <option value="">Semua Bantuan</option>
                             <option value="belum">Belum Ada</option>
@@ -353,7 +309,7 @@
                             </tr>
                         </thead>
                         <tbody id="data-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/50">
-                            <!-- Data populated here -->
+                            <!-- Data -->
                         </tbody>
                     </table>
                     <div id="empty-state" class="hidden p-12 text-center text-slate-400">
@@ -362,7 +318,6 @@
                     </div>
                 </div>
                 
-                <!-- Pagination Controls -->
                 <div id="pagination-container" class="hidden border-t border-slate-100 dark:border-slate-800 p-4 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 dark:bg-slate-900/30">
                     <span id="pagination-info" class="text-xs text-slate-500 font-semibold">Menampilkan 0-0 dari 0 data</span>
                     <div class="flex gap-2">
@@ -407,14 +362,12 @@
                             </tr>
                         </thead>
                         <tbody id="users-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <!-- User Data -->
                         </tbody>
                     </table>
                     <div id="users-empty-state" class="hidden p-12 text-center text-slate-400">
                         <p class="font-semibold text-base">Belum ada data pengguna</p>
                     </div>
                 </div>
-            <!-- PAGINATION CONTROLS PENGGUNA -->
                 <div id="users-pagination-container" class="hidden border-t border-slate-100 dark:border-slate-800 p-4 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 dark:bg-slate-900/30">
                     <span id="users-pagination-info" class="text-xs text-slate-500 font-semibold">Menampilkan 0-0 dari 0 pengguna</span>
                     <div class="flex gap-2">
@@ -432,35 +385,47 @@
 
     <!-- FOOTER NAVIGASI (BOTTOM NAV) -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-darkcard border-t border-slate-200 dark:border-slate-800 z-[80] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-2" id="bottom-nav-container">
-            <!-- Di-generate otomatis oleh JS berdasarkan sesi login -->
+        <div class="max-w-md mx-auto flex justify-around items-center pb-safe pt-2 px-2" id="bottom-nav-container">
         </div>
     </nav>
 
-    <!-- MODAL 1: Form Laporan (Berubah Dinamis Warga vs Instansi) -->
-    <div id="modal-form" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 hidden z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
-        <div class="bg-white dark:bg-darkcard w-full max-w-4xl rounded-2xl sm:rounded-3xl p-0 overflow-hidden shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]">
-            <div class="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+    <!-- MODAL 1: Form Laporan -->
+    <div id="modal-form" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 hidden z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-darkcard w-full max-w-4xl rounded-t-3xl sm:rounded-3xl p-0 overflow-hidden shadow-2xl flex flex-col max-h-[90vh] sm:max-h-[95vh] slide-up">
+            <div class="w-full flex justify-center pt-3 sm:hidden pb-1 bg-slate-50 dark:bg-slate-800/50">
+                <div class="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+            </div>
+            
+            <div class="px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
                 <h3 id="modal-form-title" class="text-lg font-black">Form Data Laporan</h3>
                 <button type="button" onclick="app.closeModal('modal-form')" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white transition">
                     <i class="ph-bold ph-x"></i>
                 </button>
             </div>
             
-            <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+            <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 pb-24 sm:pb-6">
                 <form id="laporan-form" class="space-y-6">
                     <input type="hidden" id="form-id">
                     
                     <!-- Identitas -->
                     <div id="section-identitas" class="space-y-4">
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
                             <h4 class="font-bold text-primary flex items-center gap-2"><i class="ph-fill ph-identification-card"></i> 1. Identitas & Lokasi</h4>
                             <span id="form-badge-bnba" class="px-2 py-1 bg-slate-200 text-slate-700 text-[10px] font-bold rounded uppercase hidden"></span>
                         </div>
                         
+                        <div>
+                            <label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Status Kepemilikan Bangunan</label>
+                            <select id="form-kepemilikan" onchange="app.toggleKepemilikan()" class="w-full p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800 rounded-xl text-sm outline-none focus:border-primary">
+                                <option value="Milik Sendiri">Milik Sendiri (Ditempati Pemilik)</option>
+                                <option value="Sewa / Kontrak">Sewa / Kontrak</option>
+                                <option value="Bebas Sewa / Numpang">Bebas Sewa / Menumpang</option>
+                            </select>
+                        </div>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="md:col-span-1">
-                                <label id="lbl-nama" class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Nama Lengkap</label>
+                                <label id="lbl-nama" class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Nama Pemilik</label>
                                 <input type="text" id="form-nama" required class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-primary">
                             </div>
                             <div>
@@ -471,6 +436,12 @@
                                 <label id="lbl-kk" class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">No. KK (16 Digit)</label>
                                 <input type="text" id="form-kk" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-primary">
                             </div>
+                        </div>
+
+                        <div id="container-penghuni" class="hidden p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
+                            <label class="block text-[10px] font-bold mb-1 text-orange-600 dark:text-orange-400 uppercase"><i class="ph-bold ph-warning-circle"></i> Nama Penyewa / Penghuni Saat Ini</label>
+                            <input type="text" id="form-nama-penghuni" placeholder="Wajib diisi jika statusnya Sewa/Numpang..." class="w-full p-3 bg-white dark:bg-slate-900 border border-orange-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-orange-500">
+                            <p class="text-[9px] text-orange-500 mt-1">* Pastikan NIK/KK di atas diisi menggunakan NIK/KK milik Penyewa (Pelapor), bukan milik pemilik bangunan.</p>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -493,6 +464,173 @@
                     <div id="section-survey" class="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                         <h4 class="font-bold text-accent flex items-center gap-2"><i class="ph-fill ph-clipboard-text"></i> 2. Kerusakan & Survey</h4>
                         
+                        <!-- BARU: INTEGRASI FORMULIR LAPANGAN (SESUAI FORMAT GAMBAR) -->
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-4 shadow-sm">
+                            <h5 class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-200 dark:border-slate-700 pb-2 flex items-center gap-2"><i class="ph-bold ph-file-text"></i> Formulir Penilaian Lapangan</h5>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Volume (m² / unit)</label>
+                                    <input type="text" id="form-volume" placeholder="Misal: 45 m2" class="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Harga Satuan (Rp)</label>
+                                    <input type="number" id="form-harga-satuan" placeholder="Misal: 1000000" class="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Isi Bangunan (Rp)</label>
+                                    <input type="number" id="form-isi-bangunan" placeholder="Misal: 500000" class="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-primary">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Kondisi Lumpur</label>
+                                <select id="form-lumpur" onchange="app.handleLumpurChange()" class="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold outline-none focus:border-primary">
+                                    <option value="">-- Pilih Kondisi (Opsional) --</option>
+                                    <option value="Ringan">20 cm sampai dengan 1 meter (Ringan)</option>
+                                    <option value="Sedang">> 1 meter sampai dengan 2 meter (Sedang)</option>
+                                    <option value="Berat">> 2 meter (Berat)</option>
+                                </select>
+                            </div>
+
+                            <!-- Kalkulator Struktur Bangunan -->
+                            <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-2 shadow-sm">
+                                <div class="bg-blue-50 dark:bg-slate-800 p-3 text-xs font-black text-blue-800 dark:text-blue-300 flex justify-between items-center cursor-pointer hover:bg-blue-100 transition" onclick="document.getElementById('calc-body').classList.toggle('hidden')">
+                                    <span class="flex items-center gap-2"><i class="ph-bold ph-calculator text-lg"></i> Kalkulator Kerusakan Struktur</span>
+                                    <i class="ph-bold ph-caret-down"></i>
+                                </div>
+                                
+                                <div id="calc-body" class="p-3 sm:p-5 space-y-5 bg-slate-50 dark:bg-slate-900 hidden border-t border-slate-200 dark:border-slate-700">
+                                    <div class="text-[10px] text-red-600 font-bold mb-2 pb-2 flex items-center gap-2 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800/50">
+                                        <i class="ph-bold ph-warning-circle text-2xl"></i> 
+                                        <span>Pilih <b>satu jenis kerusakan terparah</b> pada setiap komponen. Mengisi satu pilihan akan otomatis membatalkan pilihan lain di komponen yang sama.</span>
+                                    </div>
+                                    
+                                    <!-- COMPONENT CARD 1: PONDASI / SLOOF -->
+                                    <div class="component-card p-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 space-y-3 shadow-sm relative overflow-hidden transition-all hover:border-blue-400">
+                                        <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                                        <div class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-2 pl-2">
+                                            <i class="ph-bold ph-squares-four text-blue-500 text-lg"></i> 1. Pondasi / Sloof
+                                        </div>
+                                        <div class="space-y-3 pl-2">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Retak terlihat jelas (1-2mm)</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer" data-w1="3" data-w2="4" data-w3="5" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Kehancuran beton sangat nyata (tulangan terlihat)</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer" data-w1="5" data-w2="6" data-w3="11" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Penurunan dan/atau Pondasi hancur</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition cursor-pointer" data-w1="11" data-w2="14" data-w3="15" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPONENT CARD 2: KOLOM / BALOK -->
+                                    <div class="component-card p-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 space-y-3 shadow-sm relative overflow-hidden transition-all hover:border-indigo-400">
+                                        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
+                                        <div class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-2 pl-2">
+                                            <i class="ph-bold ph-columns text-indigo-500 text-lg"></i> 2. Kolom / Balok
+                                        </div>
+                                        <div class="space-y-3 pl-2">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Retak rambut (0,2 - 1 mm)</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition cursor-pointer" data-w1="7" data-w2="9" data-w3="11" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Retak sangat jelas (1 - 2 mm)</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition cursor-pointer" data-w1="7" data-w2="9" data-w3="11" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Kehancuran beton, tulangan/deformasi terlihat</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition cursor-pointer" data-w1="12" data-w2="20" data-w3="35" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPONENT CARD 3: RANGKA ATAP / KUDA-KUDA -->
+                                    <div class="component-card p-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 space-y-3 shadow-sm relative overflow-hidden transition-all hover:border-purple-400">
+                                        <div class="absolute top-0 left-0 w-1.5 h-full bg-purple-500"></div>
+                                        <div class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-2 pl-2">
+                                            <i class="ph-bold ph-house text-purple-500 text-lg"></i> 3. Rangka Atap / Kuda-Kuda
+                                        </div>
+                                        <div class="space-y-3 pl-2">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Reng dan/atau hancur atau seluruh</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition cursor-pointer" data-w1="3" data-w2="5" data-w3="11" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Kuda-kuda roboh sebagian atau seluruh</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition cursor-pointer" data-w1="11" data-w2="14" data-w3="15" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPONENT CARD 4: PENUTUP ATAP -->
+                                    <div class="component-card p-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 space-y-3 shadow-sm relative overflow-hidden transition-all hover:border-pink-400">
+                                        <div class="absolute top-0 left-0 w-1.5 h-full bg-pink-500"></div>
+                                        <div class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-2 pl-2">
+                                            <i class="ph-bold ph-sun text-pink-500 text-lg"></i> 4. Penutup Atap
+                                        </div>
+                                        <div class="space-y-3 pl-2">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Berjatuhan/menyebar sebagian atau seluruh</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition cursor-pointer" data-w1="5" data-w2="10" data-w3="10" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPONENT CARD 5: DINDING -->
+                                    <div class="component-card p-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 space-y-3 shadow-sm relative overflow-hidden transition-all hover:border-rose-400">
+                                        <div class="absolute top-0 left-0 w-1.5 h-full bg-rose-500"></div>
+                                        <div class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-2 pl-2">
+                                            <i class="ph-bold ph-wall text-rose-500 text-lg"></i> 5. Dinding
+                                        </div>
+                                        <div class="space-y-3 pl-2">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Plesteran dan/atau terkelupas</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition cursor-pointer" data-w1="3" data-w2="4" data-w3="5" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Retak dapat terlihat jelas, tembus pada pasangan batu</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition cursor-pointer" data-w1="5" data-w2="6" data-w3="11" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Dinding jatuh sebagian atau menyeluruh</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition cursor-pointer" data-w1="11" data-w2="14" data-w3="15" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPONENT CARD 6: LANTAI -->
+                                    <div class="component-card p-4 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 space-y-3 shadow-sm relative overflow-hidden transition-all hover:border-orange-400">
+                                        <div class="absolute top-0 left-0 w-1.5 h-full bg-orange-500"></div>
+                                        <div class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-2 pl-2">
+                                            <i class="ph-bold ph-grid-four text-orange-500 text-lg"></i> 6. Lantai
+                                        </div>
+                                        <div class="space-y-3 pl-2">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 pb-2 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Retak rambut menyebar sebagian atau seluruh</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition cursor-pointer" data-w1="2" data-w2="3" data-w3="3" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 transition-opacity">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold leading-relaxed">Retak sebagian atau seluruh</div>
+                                                <select class="calc-sel p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-50 dark:bg-slate-900 font-bold w-full sm:w-36 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition cursor-pointer" data-w1="8" data-w2="9" data-w3="10" onchange="app.calcStruktur(this)"><option value="0">0 (Aman)</option><option value="1">1 Komponen</option><option value="2">2 Komponen</option><option value="3">≥3 Komponen</option></select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Hasil Kalkulator -->
+                                <div class="bg-blue-100 dark:bg-blue-900/40 p-4 flex justify-between items-center border-t border-blue-200 dark:border-blue-800/50">
+                                    <div class="font-black text-blue-900 dark:text-blue-300 text-sm">Persentase: <span id="calc-total" class="text-2xl ml-1">0</span>%</div>
+                                    <div id="calc-status" class="px-3 py-1 bg-white dark:bg-slate-800 rounded-lg text-xs font-bold border border-slate-200 text-slate-400 shadow-sm">-</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex flex-col sm:flex-row gap-3">
                             <div class="flex-grow">
                                 <label class="block text-[10px] font-bold mb-1 text-slate-500 uppercase">Koordinat GPS</label>
@@ -631,9 +769,9 @@
                 itemsPerPage: 10,
                 
                 usersData: [], 
-                filteredUsersData: [], // Tambahan state
-                usersCurrentPage: 1,   // Tambahan state
-                usersItemsPerPage: 10, // Tambahan state
+                filteredUsersData: [],
+                usersCurrentPage: 1,  
+                usersItemsPerPage: 10,
                 
                 config: { phase: 'Memuat...', status: 'closed' },
                 chartInstance: null
@@ -646,8 +784,14 @@
                 const session = localStorage.getItem('sipban_session');
                 if (session) {
                     this.state.currentUser = JSON.parse(session);
+                    // Set default kategori ke 'warga' saat baru login
+                    this.state.activeCategory = 'warga'; 
                     this.updateNavUI('dashboard');
-                    this.fetchConfig().then(() => this.showPage('dashboard'));
+                    this.fetchConfig().then(() => {
+                        this.showPage('dashboard');
+                        // Panggil fetchData otomatis agar data langsung tampil
+                        this.fetchData(); 
+                    });
                 } else {
                     this.updateNavUI('landing');
                     this.showPage('landing');
@@ -789,69 +933,10 @@
                 }
             },
 
-<!--
             async fetchPublicStats() {
                 try {
                     const res = await this.gasFetch('getPublicStats');
                     if(res.status === 'success') {
-                        this.animateValue('stat-total', 0, res.data.total, 1000);
-                        
-                        // Menambahkan animasi untuk kotak status yang baru
-                        this.animateValue('stat-proses', 0, res.data.proses, 1000);
-                        this.animateValue('stat-verified', 0, res.data.verified, 1000);
-                        this.animateValue('stat-ditolak', 0, res.data.ditolak, 1000);
-
-                        // Kotak Kerusakan
-                        this.animateValue('stat-berat', 0, res.data.berat, 1000);
-                        this.animateValue('stat-sedang', 0, res.data.sedang, 1000);
-                        this.animateValue('stat-ringan', 0, res.data.ringan, 1000);
-                        
-                        this.renderChart(res.data);
-                        
-                        // 2. Urutkan desa berdasarkan Abjad (Ascending / A-Z)
-                        const sortedVillages = Object.entries(res.data.villages).sort((a, b) => a[0].localeCompare(b[0]));
-
-                        let html = '';
-                        for(const [desa, stats] of sortedVillages) {
-                            // Hitung persentase untuk visual bar chart
-                            const pBerat = stats.total ? (stats.berat / stats.total) * 100 : 0;
-                            const pSedang = stats.total ? (stats.sedang / stats.total) * 100 : 0;
-                            const pRingan = stats.total ? (stats.ringan / stats.total) * 100 : 0;
-
-                            html += `
-                            <div class="bg-white dark:bg-darkcard border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm hover:shadow-md transition group mb-3">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-primary transition flex items-center gap-2"><i class="ph-fill ph-map-pin text-primary/50"></i> Desa ${desa}</h4>
-                                    <span class="bg-blue-50 dark:bg-blue-900/30 text-primary px-2.5 py-1 rounded-lg text-xs font-black">${stats.total} Laporan</span>
-                                </div>
-                                
-                                <!-- Visual Bar Kerusakan Horizontal -->
-                                <div class="w-full flex h-2.5 rounded-full overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800 shadow-inner">
-                                    <div style="width: ${pBerat}%" class="bg-red-500 hover:opacity-80 transition" title="Berat: ${stats.berat}"></div>
-                                    <div style="width: ${pSedang}%" class="bg-orange-500 hover:opacity-80 transition" title="Sedang: ${stats.sedang}"></div>
-                                    <div style="width: ${pRingan}%" class="bg-blue-500 hover:opacity-80 transition" title="Ringan: ${stats.ringan}"></div>
-                                </div>
-                                
-                                <!-- Keterangan Legend Bawah -->
-                                <div class="flex justify-between text-[10px] font-semibold mt-2">
-                                    <div class="text-red-600 dark:text-red-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span> Berat: ${stats.berat}</div>
-                                    <div class="text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm"></span> Sedang: ${stats.sedang}</div>
-                                    <div class="text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm"></span> Ringan: ${stats.ringan}</div>
-                                </div>
-                            </div>`;
-                        }
-                        
-                        const emptyState = '<div class="p-6 text-center text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800"><i class="ph-duotone ph-chart-bar text-4xl mb-2 opacity-50"></i><p class="text-sm">Data statistik kampung belum tersedia.</p></div>';
-                        document.getElementById('village-stats-container').innerHTML = html || emptyState;
-                    }
-                } catch(e) {}
-            },
--->
-            async fetchPublicStats() {
-                try {
-                    const res = await this.gasFetch('getPublicStats');
-                    if(res.status === 'success') {
-                        // Animasi Angka
                         this.animateValue('stat-total', 0, res.data.total, 1000);
                         this.animateValue('stat-proses', 0, res.data.proses, 1000);
                         this.animateValue('stat-verified', 0, res.data.verified, 1000);
@@ -863,12 +948,10 @@
                         
                         this.renderChart(res.data);
                         
-                        // Urutkan desa berdasarkan Abjad (Ascending / A-Z)
                         const sortedVillages = Object.entries(res.data.villages).sort((a, b) => a[0].localeCompare(b[0]));
 
                         let html = '';
                         for(const [desa, stats] of sortedVillages) {
-                            // Hitung persentase untuk visual bar chart
                             const pBerat = stats.total ? (stats.berat / stats.total) * 100 : 0;
                             const pSedang = stats.total ? (stats.sedang / stats.total) * 100 : 0;
                             const pRingan = stats.total ? (stats.ringan / stats.total) * 100 : 0;
@@ -880,21 +963,18 @@
                                     <span class="bg-blue-50 dark:bg-blue-900/30 text-primary px-2.5 py-1 rounded-lg text-xs font-black">${stats.total} Laporan</span>
                                 </div>
                                 
-                                <!-- Visual Bar Kerusakan Horizontal -->
                                 <div class="w-full flex h-2.5 rounded-full overflow-hidden mb-2 bg-slate-100 dark:bg-slate-800 shadow-inner">
                                     <div style="width: ${pBerat}%" class="bg-red-500 hover:opacity-80 transition" title="Berat: ${stats.berat}"></div>
                                     <div style="width: ${pSedang}%" class="bg-orange-500 hover:opacity-80 transition" title="Sedang: ${stats.sedang}"></div>
                                     <div style="width: ${pRingan}%" class="bg-blue-500 hover:opacity-80 transition" title="Ringan: ${stats.ringan}"></div>
                                 </div>
                                 
-                                <!-- Keterangan Legend Bawah (Kerusakan) -->
                                 <div class="flex justify-between text-[10px] font-semibold mt-2 pb-2 border-b border-slate-50 dark:border-slate-800">
                                     <div class="text-red-600 dark:text-red-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span> Berat: ${stats.berat}</div>
                                     <div class="text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm"></span> Sedang: ${stats.sedang}</div>
                                     <div class="text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm"></span> Ringan: ${stats.ringan}</div>
                                 </div>
                                 
-                                <!-- BARU: Keterangan Status Laporan -->
                                 <div class="flex justify-between text-[10px] font-semibold mt-2 pt-1">
                                     <div class="text-blue-500 flex items-center gap-1" title="Masih diproses/Menunggu survey"><i class="ph-bold ph-spinner-gap"></i> Proses: ${stats.proses || 0}</div>
                                     <div class="text-emerald-500 flex items-center gap-1" title="Sudah diverifikasi"><i class="ph-bold ph-check-circle"></i> Valid: ${stats.verified || 0}</div>
@@ -909,7 +989,6 @@
                 } catch(e) {}
             },
 
-            // Fungsi baru pembantu untuk membuat animasi angka berputar
             animateValue(id, start, end, duration) {
                 const obj = document.getElementById(id);
                 if(!obj || end === 0) {
@@ -990,7 +1069,7 @@
                 document.getElementById('dashboard-role').innerHTML = `<i class="ph-fill ph-user-circle text-lg"></i> ${this.state.currentUser.username} (${roleFormatted})`;
                 document.getElementById('table-head-identitas').innerText = isDinas ? 'Instansi & Penghuni' : 'Pemilik & Identitas';
                 
-                ['search-input', 'filter-bantuan', 'filter-kerusakan', 'filter-desa'].forEach(id => {
+                ['search-input', 'filter-bantuan', 'filter-kerusakan', 'filter-desa', 'filter-fase'].forEach(id => {
                     const el = document.getElementById(id); if(el) el.value = '';
                 });
 
@@ -1016,24 +1095,83 @@
             async fetchData() {
                 this.showLoading(true);
                 try {
-                    const res = await this.gasFetch('getData', { 
+                    const payload = { 
                         username: this.state.currentUser.username, 
-                        role: this.state.currentUser.role, 
-                        kategori: this.state.activeCategory 
-                    });
+                        role: this.state.currentUser.role,
+                        kategori: this.state.activeCategory || 'warga'
+                    };
+                    
+                    const res = await this.gasFetch('getData', payload);
+                    
                     if(res.status === 'success') { 
-                        this.state.dataRumah = res.data;
-                        this.updateDropdowns();
+                        let fetchedData = res.data || [];
+                        
+                        if (this.state.currentUser.role === 'petugas') {
+                            const userDesa = this.state.currentUser.username.replace(/_/g, ' ').toLowerCase();
+                            fetchedData = fetchedData.filter(item => (item.desa || '').toLowerCase() === userDesa);
+                        }
+                        
+                        // FIX: URUTKAN DATA DARI YANG TERBARU KE YANG TERLAMA (Berdasarkan ID / Timestamp)
+                        this.state.dataRumah = fetchedData.sort((a, b) => {
+                             // Assuming ID is generated sequentially (e.g. timestamp or incrementing number)
+                             // Fallback to sorting by date if available, otherwise just reverse the array if IDs aren't reliable
+                             if (a.id && b.id) {
+                                 // Try numeric comparison if IDs are numbers or numeric strings
+                                 if (!isNaN(a.id) && !isNaN(b.id)) {
+                                     return Number(b.id) - Number(a.id);
+                                 }
+                                 // Otherwise string comparison
+                                 return b.id.toString().localeCompare(a.id.toString());
+                             }
+                             return -1; // Default to putting new elements at the top if ID parsing fails
+                        });
+
+                        this.updateDropdowns(); 
+                        if(document.getElementById('dashboard-title')) {
+                             const isDinas = this.state.activeCategory === 'dinas';
+                             document.getElementById('dashboard-title').innerText = `Dasbor ${isDinas ? 'Rumah Dinas / Instansi' : 'Warga'}`;
+                        }
                         this.filterTable(); 
+                    } else {
+                        throw new Error(res.message || "Gagal merender data dari server");
                     }
-                } finally { this.showLoading(false); }
+                } catch(e) {
+                    this.showToast(e.message, 'error');
+                    this.state.dataRumah = []; 
+                    this.updateDropdowns();
+                    this.filterTable();
+                } finally { 
+                    this.showLoading(false); 
+                }
             },
 
             updateDropdowns() {
                 const selectDesa = document.getElementById('filter-desa');
+                const selectFase = document.getElementById('filter-fase');
+                
+                // SABUK PENGAMAN 3: Pastikan data valid sebelum di-Map
+                const data = Array.isArray(this.state.dataRumah) ? this.state.dataRumah : [];
+                
                 if (selectDesa) {
-                    const uniqueDesa = [...new Set(this.state.dataRumah.map(i => i.desa).filter(d => d))].sort();
+                    const uniqueDesa = [...new Set(data.map(i => i.desa).filter(d => d))].sort();
+                    const currentValue = selectDesa.value;
+                    
                     selectDesa.innerHTML = '<option value="">Semua Lokasi</option>' + uniqueDesa.map(d => `<option value="${d}">${d}</option>`).join('');
+                    
+                    if (uniqueDesa.includes(currentValue)) {
+                        selectDesa.value = currentValue;
+                    }
+                }
+                
+                if (selectFase) {
+                    const uniqueFase = [...new Set(data.map(i => i.fase_bnba || i.fase).filter(f => f))].sort();
+                    const currentFaseValue = selectFase.value;
+                    
+                    selectFase.innerHTML = '<option value="">Semua Fase</option>' + uniqueFase.map(f => `<option value="${f}">${f}</option>`).join('');
+                    
+                    if (uniqueFase.includes(currentFaseValue)) {
+                        selectFase.value = currentFaseValue;
+                    }
                 }
             },
 
@@ -1042,18 +1180,23 @@
                 const fBantuan = document.getElementById('filter-bantuan').value;
                 const fKerusakan = document.getElementById('filter-kerusakan').value;
                 const fDesa = document.getElementById('filter-desa').value;
+                const fFase = document.getElementById('filter-fase').value;
                 
                 this.state.filteredData = this.state.dataRumah.filter(i => {
                     const matchText = q === '' || 
                                       (i.nama_pemilik||'').toString().toLowerCase().includes(q) || 
                                       (i.nik||'').toString().toLowerCase().includes(q) ||
-                                      (i.no_kk||'').toString().toLowerCase().includes(q); // KODE DITAMBAHKAN DI SINI
+                                      (i.no_kk||'').toString().toLowerCase().includes(q); 
                     
                     const matchDesa = fDesa === '' || i.desa === fDesa;
                     const jB = i.jenis_bantuan || 'Belum Ada';
                     const matchBantuan = fBantuan === '' || (fBantuan === 'belum' && jB === 'Belum Ada') || (fBantuan === 'sudah' && jB !== 'Belum Ada');
                     const matchKerusakan = fKerusakan === '' || (fKerusakan === 'kosong' && !i.tingkat_kerusakan) || i.tingkat_kerusakan === fKerusakan;
-                    return matchText && matchDesa && matchBantuan && matchKerusakan;
+                    
+                    const itemFase = i.fase_bnba || i.fase || '';
+                    const matchFase = fFase === '' || itemFase === fFase;
+
+                    return matchText && matchDesa && matchBantuan && matchKerusakan && matchFase;
                 });
                 
                 this.state.currentPage = 1; this.renderTable();
@@ -1062,7 +1205,7 @@
             renderTable() {
                 const tbody = document.getElementById('data-table-body');
                 const dataList = this.state.filteredData;
-                if(dataList.length === 0) { tbody.innerHTML = ''; document.getElementById('empty-state').classList.remove('hidden'); return; }
+                if(dataList.length === 0) { tbody.innerHTML = ''; document.getElementById('empty-state').classList.remove('hidden'); document.getElementById('pagination-container').classList.add('hidden'); return; }
                 document.getElementById('empty-state').classList.add('hidden');
 
                 const total = dataList.length;
@@ -1078,16 +1221,13 @@
 
                 const role = this.state.currentUser.role;
                 tbody.innerHTML = paginatedData.map(item => {
-                    // Penataan Warna Status
                     const stColor = item.status === 'Terverifikasi' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 
                                    (item.status === 'Ditolak' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-amber-50 text-amber-600 border-amber-200');
                     const kColor = item.tingkat_kerusakan === 'Rusak Berat' ? 'text-red-600' : 
                                   (item.tingkat_kerusakan === 'Rusak Sedang' ? 'text-orange-500' : 'text-slate-600');
                     
-                    // Kumpulan Tombol Aksi (Dengan Tooltip/Title)
                     let btns = `<button onclick="app.openFormLaporan('${item.id}')" title="Detail / Edit Data" class="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition shadow-sm"><i class="ph-bold ph-pencil-simple"></i></button>`;
                     
-                    // HANYA Admin dan Petugas Kecamatan yang boleh memunculkan tombol Input Bantuan
                     if(['admin', 'petugas_kecamatan'].includes(role)) {
                         btns += ` <button onclick="app.openFormBantuan('${item.id}')" title="Input Bantuan" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition shadow-sm"><i class="ph-bold ph-hand-coins"></i></button>`;
                     }
@@ -1097,7 +1237,6 @@
                         btns += ` <button onclick="app.confirmDeleteLaporan('${item.id}')" title="Hapus Laporan" class="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition shadow-sm"><i class="ph-bold ph-trash"></i></button>`;
                     }
 
-                    // Penataan Kapsul Foto
                     let photos = ''; 
                     for(let i = 1; i <= 6; i++) { 
                         if(item[`foto_${i}`]) {
@@ -1116,10 +1255,28 @@
                             <div class="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-md inline-block">${item.fase_bnba || 'BNBA -'}</div>
                         </td>
                         <td class="px-4 py-4 align-top">
-                            <div class="font-black text-sm text-slate-800 mb-1.5">${item.nama_pemilik}</div>
+                            ${(item.status_kepemilikan === 'Sewa / Kontrak' || item.status_kepemilikan === 'Bebas Sewa / Numpang') ? `
+                                <div class="mb-2 inline-block px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/40 dark:text-orange-400 dark:border-orange-800/60 shadow-sm">
+                                    ${item.status_kepemilikan}
+                                </div>
+                                <div class="font-black text-sm text-orange-700 dark:text-orange-400 mb-0.5 flex items-center gap-1.5" title="Penghuni / Pelapor (Pemilik NIK/KK)">
+                                    <i class="ph-fill ph-user-switch text-lg"></i> ${item.nama_penghuni || '-'}
+                                </div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-2 flex items-center gap-1.5">
+                                    <i class="ph-fill ph-house text-slate-400"></i> Pemilik: ${item.nama_pemilik}
+                                </div>
+                            ` : `
+                                <div class="mb-2 inline-block px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 shadow-sm">
+                                    ${item.status_kepemilikan || 'Milik Sendiri'}
+                                </div>
+                                <div class="font-black text-sm text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-1.5" title="Pemilik Bangunan sekaligus Pelapor">
+                                    <i class="ph-fill ph-user text-primary text-lg"></i> ${item.nama_pemilik}
+                                </div>
+                            `}
+
                             <div class="flex flex-col gap-1">
-                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 inline-block w-fit">NIK: ${item.nik}</div>
-                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 inline-block w-fit">KK : ${item.no_kk || '-'}</div>
+                                <div class="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 inline-block w-fit" title="NIK Pelapor">NIK: ${item.nik}</div>
+                                <div class="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 inline-block w-fit" title="KK Pelapor">KK : ${item.no_kk || '-'}</div>
                             </div>
                             ${item.keterangan_ganda ? `<div class="mt-2 px-2 py-1 text-[10px] text-red-600 bg-red-50 border border-red-100 rounded-lg font-bold flex items-center gap-1 w-fit"><i class="ph-bold ph-warning-circle"></i> ${item.keterangan_ganda}</div>` : ''}
                         </td>
@@ -1163,7 +1320,7 @@
                 let html = '';
                 for(let i=1; i<=6; i++) {
                     html += `
-                        <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-2 text-center relative aspect-square bg-slate-50 dark:bg-slate-900 group">
+                        <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-2 text-center relative aspect-square bg-slate-50 dark:bg-slate-900 group overflow-hidden">
                             <input type="file" id="form-foto-${i}" accept="image/*" onchange="app.previewPhoto(this, ${i})" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                             <div id="preview-container-${i}" class="absolute inset-0 bg-cover bg-center z-0 hidden rounded-xl"></div>
                             <div id="placeholder-${i}" class="flex flex-col items-center justify-center h-full text-slate-400 group-hover:text-primary transition">
@@ -1206,6 +1363,8 @@
                         },
                         () => { this.showToast('Gagal mendapat lokasi. Aktifkan GPS.', 'error'); }
                     );
+                } else {
+                     this.showToast('Perangkat tidak mendukung GPS', 'error');
                 }
             },
             
@@ -1221,11 +1380,118 @@
                 }
             },
 
+            // BARU: Fungsi untuk mengkalkulasi Kerusakan Struktur dengan Logika Eksklusif
+            calcStruktur(el) {
+                // Logika saling eksklusif per komponen/card (Mencegah isi 2 data di komponen yang sama)
+                if(el && el.value !== "0") {
+                    const card = el.closest('.component-card');
+                    if(card) {
+                        card.querySelectorAll('.calc-sel').forEach(select => {
+                            if(select !== el) {
+                                select.value = "0"; // Reset select lain
+                                select.parentElement.classList.add('opacity-30', 'pointer-events-none'); // Redupkan dan disable visual
+                            } else {
+                                select.parentElement.classList.remove('opacity-30', 'pointer-events-none');
+                            }
+                        });
+                    }
+                } else if (el && el.value === "0") {
+                     // Jika di-reset ke 0, hapus efek redup dari semua select di card tersebut
+                     const card = el.closest('.component-card');
+                     if(card) {
+                         card.querySelectorAll('.calc-sel').forEach(select => {
+                             select.parentElement.classList.remove('opacity-30', 'pointer-events-none');
+                         });
+                     }
+                }
+
+                let total = 0;
+                document.querySelectorAll('.calc-sel').forEach(select => {
+                    const val = parseInt(select.value);
+                    if(val === 1) total += parseInt(select.getAttribute('data-w1'));
+                    if(val === 2) total += parseInt(select.getAttribute('data-w2'));
+                    if(val === 3) total += parseInt(select.getAttribute('data-w3'));
+                });
+                
+                // Pastikan maksimal 100%
+                total = Math.min(total, 100);
+                document.getElementById('calc-total').innerText = total;
+                
+                // Tentukan Kategori Berdasarkan Aturan Formulir
+                let status = '';
+                if(total === 0) status = '-';
+                else if(total <= 30) status = 'Rusak Ringan';
+                else if(total <= 70) status = 'Rusak Sedang';
+                else status = 'Rusak Berat';
+                
+                const statusEl = document.getElementById('calc-status');
+                statusEl.innerText = status;
+                
+                // Set warna badge sesuai kategori
+                statusEl.className = 'px-3 py-1 rounded-lg text-xs font-bold border shadow-sm ' + 
+                    (status === 'Rusak Berat' ? 'bg-red-50 text-red-600 border-red-200' :
+                    (status === 'Rusak Sedang' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                    (status === 'Rusak Ringan' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-400 border-slate-200')));
+                    
+                // Otomatis ubah field "Tingkat Kerusakan" bawaan
+                if(status !== '-') {
+                    document.getElementById('form-rusak').value = status;
+                    // Kosongkan kondisi lumpur jika struktur terisi (Saling Eksklusif)
+                    document.getElementById('form-lumpur').value = "";
+                } else {
+                    // Jika kalkulator di-reset jadi 0, cek apakah lumpur juga kosong
+                    if(document.getElementById('form-lumpur').value === "") {
+                        document.getElementById('form-rusak').value = "";
+                    }
+                }
+            },
+
+            // BARU: Fungsi menangani perubahan Kondisi Lumpur
+            handleLumpurChange() {
+                const val = document.getElementById('form-lumpur').value;
+                if(val) {
+                    // Otomatis isi Tingkat Kerusakan
+                    document.getElementById('form-rusak').value = 'Rusak ' + val;
+                    
+                    // Reset Kalkulator Struktur karena lumpur terisi (Saling Eksklusif)
+                    document.querySelectorAll('.calc-sel').forEach(s => {
+                        s.value = '0';
+                        s.parentElement.classList.remove('opacity-30', 'pointer-events-none');
+                    });
+                    document.getElementById('calc-total').innerText = '0';
+                    const statusEl = document.getElementById('calc-status');
+                    statusEl.innerText = '-';
+                    statusEl.className = 'px-3 py-1 bg-white dark:bg-slate-800 rounded-lg text-xs font-bold border border-slate-200 text-slate-400 shadow-sm';
+                } else {
+                    // Jika lumpur dikosongkan, kembalikan perhitungan ke kalkulator struktur
+                    this.calcStruktur();
+                }
+            },
+
+            // Tambahkan fungsi baru ini di dalam object 'app'
+            toggleKepemilikan() {
+                const val = document.getElementById('form-kepemilikan').value;
+                const container = document.getElementById('container-penghuni');
+                const isSewa = val === 'Sewa / Kontrak' || val === 'Bebas Sewa / Numpang';
+                
+                document.getElementById('lbl-nama').innerText = isSewa ? 'Nama Pemilik Bangunan' : 'Nama Lengkap Warga';
+                document.getElementById('lbl-nik').innerText = isSewa ? 'NIK Penyewa (Pelapor)' : 'NIK (16 Digit)';
+                document.getElementById('lbl-kk').innerText = isSewa ? 'No. KK Penyewa (Pelapor)' : 'No. KK (16 Digit)';
+                
+                if (isSewa) {
+                    container.classList.remove('hidden');
+                    document.getElementById('form-nama-penghuni').required = true;
+                } else {
+                    container.classList.add('hidden');
+                    document.getElementById('form-nama-penghuni').required = false;
+                    document.getElementById('form-nama-penghuni').value = ''; 
+                }
+            },
+
             openFormLaporan(id = null) {
                 const user = this.state.currentUser;
                 const isDinas = this.state.activeCategory === 'dinas';
                 
-                // Ubah Label Dinamis
                 document.getElementById('lbl-nama').innerText = isDinas ? 'Nama Instansi / Dinas' : 'Nama Lengkap Warga';
                 document.getElementById('lbl-nik').innerText = isDinas ? 'NIK Penghuni (16 Digit)' : 'NIK (16 Digit)';
                 document.getElementById('lbl-kk').innerText = isDinas ? 'No. KK Penghuni (16 Digit)' : 'No. KK (16 Digit)';
@@ -1244,6 +1510,19 @@
                 document.getElementById('form-id').value = id || '';
                 document.getElementById('modal-form-title').innerText = id ? 'Ubah Data' : 'Laporan Baru';
                 
+                // BARU: Reset field formulir tambahan
+                document.getElementById('form-volume').value = '';
+                document.getElementById('form-harga-satuan').value = '';
+                document.getElementById('form-isi-bangunan').value = '';
+                document.getElementById('form-lumpur').value = '';
+                document.querySelectorAll('.calc-sel').forEach(s => {
+                    s.value = '0';
+                    s.parentElement.classList.remove('opacity-30', 'pointer-events-none');
+                });
+                document.getElementById('calc-total').innerText = '0';
+                document.getElementById('calc-status').innerText = '-';
+                document.getElementById('calc-status').className = 'px-3 py-1 bg-white dark:bg-slate-800 rounded-lg text-xs font-bold border border-slate-200 text-slate-400 shadow-sm';
+                
                 // 1. Tampilkan section survey untuk semua (agar Kecamatan bisa melihat foto)
                 document.getElementById('section-survey').classList.remove('hidden');
                 document.getElementById('section-admin').classList.toggle('hidden', user.role !== 'admin');
@@ -1251,29 +1530,40 @@
                 const inputsIdentitas = document.getElementById('section-identitas').querySelectorAll('input');
                 const inputsSurvey = document.getElementById('section-survey').querySelectorAll('input, select');
 
-                // 2. Kunci Form Identitas: Surveyor dan Kecamatan HANYA BISA MEMBACA (Read-Only)
                 inputsIdentitas.forEach(el => el.readOnly = ['surveyor', 'petugas_kecamatan'].includes(user.role)); 
-
-                // 3. Kunci Form Survey & Foto: Petugas Kampung dan Kecamatan TIDAK BISA MENGUBAH
                 inputsSurvey.forEach(el => el.disabled = ['petugas', 'petugas_kecamatan'].includes(user.role));
 
                 if (id) {
                     const item = this.state.dataRumah.find(d => d.id == id);
-                    if(item) {
-                        document.getElementById('form-nama').value = item.nama_pemilik; 
-                        document.getElementById('form-nik').value = item.nik; 
-                        document.getElementById('form-kk').value = item.no_kk;
-                        document.getElementById('form-dusun').value = item.dusun; 
-                        document.getElementById('form-desa').value = item.desa; 
-                        document.getElementById('form-kecamatan').value = item.kecamatan;
+                    if (item) {
+                        document.getElementById('form-kepemilikan').value = item.status_kepemilikan || 'Milik Sendiri';
+                        document.getElementById('form-nama').value = item.nama_pemilik || ''; 
+                        document.getElementById('form-nama-penghuni').value = item.nama_penghuni || ''; 
+                        document.getElementById('form-nik').value = item.nik || ''; 
+                        document.getElementById('form-kk').value = item.no_kk || '';
+                        document.getElementById('form-dusun').value = item.dusun || ''; 
+                        document.getElementById('form-desa').value = item.desa || ''; 
+                        document.getElementById('form-kecamatan').value = item.kecamatan || '';
                         document.getElementById('form-koordinat').value = item.koordinat || ''; 
                         document.getElementById('form-rusak').value = item.tingkat_kerusakan || ''; 
                         document.getElementById('form-kebutuhan').value = item.kebutuhan_mendesak || ''; 
                         document.getElementById('form-status').value = item.status || 'Menunggu Survey';
                         document.getElementById('form-catatan-tolak').value = item.catatan_tolak || '';
+                        
+                        // BARU: Load data tambahan jika ada
+                        document.getElementById('form-volume').value = item.volume || '';
+                        document.getElementById('form-harga-satuan').value = item.harga_satuan || '';
+                        document.getElementById('form-isi-bangunan').value = item.isi_bangunan || '';
+                        document.getElementById('form-lumpur').value = item.kondisi_lumpur || '';
+                        if(item.persentase_rusak) {
+                            document.getElementById('calc-total').innerText = item.persentase_rusak;
+                        }
                     }
+                } else {
+                    document.getElementById('form-kepemilikan').value = 'Milik Sendiri';
                 }
-                
+
+                this.toggleKepemilikan();               
                 this.toggleCatatanTolak();
                 document.getElementById('modal-form').classList.remove('hidden');
             },
@@ -1294,7 +1584,9 @@
                     
                     if(['petugas', 'admin'].includes(role)) {
                         payload.identitas = { 
+                            kepemilikan: document.getElementById('form-kepemilikan').value, 
                             nama: document.getElementById('form-nama').value, 
+                            nama_penghuni: document.getElementById('form-nama-penghuni').value, 
                             nik: document.getElementById('form-nik').value, 
                             kk: document.getElementById('form-kk').value, 
                             dusun: document.getElementById('form-dusun').value, 
@@ -1307,8 +1599,21 @@
                         payload.survey = { 
                             koordinat: document.getElementById('form-koordinat').value, 
                             rusak: document.getElementById('form-rusak').value, 
-                            kebutuhan: document.getElementById('form-kebutuhan').value 
+                            kebutuhan: document.getElementById('form-kebutuhan').value,
+                            
+                            // BARU: Kirim data formulir tambahan ke backend
+                            volume: document.getElementById('form-volume').value,
+                            harga_satuan: document.getElementById('form-harga-satuan').value,
+                            isi_bangunan: document.getElementById('form-isi-bangunan').value,
+                            kondisi_lumpur: document.getElementById('form-lumpur').value,
+                            persentase_rusak: document.getElementById('calc-total').innerText
                         };
+                        
+                        // Kumpulkan detail kalkulator struktur ke dalam JSON string (Opsional untuk cetak)
+                        let calcData = [];
+                        document.querySelectorAll('.calc-sel').forEach(s => calcData.push(s.value));
+                        payload.survey.detail_struktur = JSON.stringify(calcData);
+                        
                         payload.fotos = [];
                         for(let i=1; i<=6; i++) { 
                             const file = document.getElementById(`form-foto-${i}`).files[0]; 
@@ -1450,9 +1755,7 @@
                     e.target.value = ''; 
                 }
             },
-
             
-            // 1. Data Ganda (Cek & Simpan)
             async showDuplicates() {
                 this.showLoading(true);
                 try {
@@ -1495,7 +1798,6 @@
                 finally { this.showLoading(false); }
             },
             
-            // 2. View Logs
             async viewLog(id) {
                 this.showLoading(true);
                 try {
@@ -1523,7 +1825,6 @@
                 } finally { this.showLoading(false); }
             },
             
-            // 3. Manajemen User
             async fetchUsers() {
                 this.showLoading(true);
                 try {
@@ -1566,7 +1867,6 @@
                 empty.classList.add('hidden');
                 pagContainer.classList.remove('hidden');
                 
-                // Logika Paginasi
                 const total = dataList.length;
                 const totalPages = Math.ceil(total / this.state.usersItemsPerPage) || 1;
                 
@@ -1648,7 +1948,6 @@
         };
 
         
-        // 1. Landing Page Cek Warga
         document.getElementById('cek-warga-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const keyword = document.getElementById('cek-input').value;
@@ -1662,7 +1961,6 @@
             try {
                 const res = await app.gasFetch('checkDataWarga', { keyword });
                 if(res.status === 'success' && res.data) {
-                    // Pengecekan apakah data yang dikembalikan Array atau Object Tunggal
                     const dataArray = Array.isArray(res.data) ? res.data : [res.data];
                     
                     let html = `<div class="space-y-4 max-h-80 overflow-y-auto custom-scrollbar">`;
@@ -1691,7 +1989,6 @@
             }
         });
 
-        // 2. Global Forms
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             app.showLoading(true);
